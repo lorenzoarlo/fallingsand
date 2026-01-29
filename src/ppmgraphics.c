@@ -3,7 +3,11 @@
  * @brief Functions for exporting the Universe as images.
  */
 #include "graphics.h"
+#include <stdio.h>
+#include <stdlib.h>
 #define GRAPHICS_FILE_EXTENSION "ppm"
+
+#include <string.h>
 
 /**
  * Mapping function that associates a block type to a color.

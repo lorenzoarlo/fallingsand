@@ -86,23 +86,49 @@ int main(int argc, char *argv[])
         universe_destroy(current_universe);
         current_universe = next_universe;
     }
+    universe_destroy(current_universe);
+    fclose(output_file);
+
+    printf("Simulation completed.\n");
 
     // Export image if requested
     if (config.output_folder != NULL)
     {
+        printf("Started printing images\n");
         // Open the output .sand file to read frames for image export
         // Reuse same variables for width, height, frames
         FILE *file = io_open_read(config.output_filename, &width, &height, &initial_frames);
-        for (int i = 0; i < config.frames; i++)
+        if (file == NULL)
+        {
+            fprintf(stderr, "Error opening output file for image export.\n");
+            return 1;
+        }
+        for (int i = 0; i < initial_frames; i++)
         {
             Universe *u;
             char image_path[512];
             // Create the image path string: folder/0000.ppm
             // 0 based because the first should be the original one
-            snprintf(image_path, sizeof(image_path), "%s/%04d.ppm", config.output_folder, i + 1);
-            io_read_frame(file, u);
+            snprintf(image_path, sizeof(image_path), "%s/%04d.%s", config.output_folder, i + 1, "ppm");
+
+            // Read frame
+            printf("Reading frame %d for image export...\n", i + 1);
+            int res = io_read_frame(file, u);
+            if (res != 0)
+            {
+                fprintf(stderr, "Error reading frame %d for image export.\n", i + 1);
+                break;
+            }
+            // Export image
             universe_export_image(u, image_path, config.scale);
+
+            // Deallocate universe after export
             universe_destroy(u);
+
+            if ((i + 1) % LOG_BATCH_SIZE == 0)
+            {
+                printf("Exported %d/%d images...\n", i + 1, config.frames);
+            }
         }
         fclose(file);
     }
@@ -110,8 +136,6 @@ int main(int argc, char *argv[])
     // Clean up final state and close output file
     universe_destroy(current_universe);
     fclose(output_file);
-
-    printf("Simulation completed.\n");
 
     // Test verification if test file is provided
     if (config.test_filename != NULL)
