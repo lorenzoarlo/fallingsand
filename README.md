@@ -14,7 +14,7 @@
 
 The falling sand project is a simulation of particles that interact with each other based on simple physical rules. The main types of particles are empty space, walls, sand, and water. Each particle type has its own behavior, such as falling under gravity or flowing.
 
-## Algorithm overview
+## Algorithm overview
 
 The simulation consists of four distinct particle types, each represented by a specific integer value:
 
@@ -29,14 +29,13 @@ The simulation consists of four distinct particle types, each represented by a s
 
 The base structure for the simulation universe is defined as follows:
 
-`c
+```c
 typedef struct {
     unsigned char *cells; // Pointer to a dynamic array of size width * height
     int width;
     int height;
 } Universe;
-
-`
+```
 
 The `*cells` array stores the grid rows sequentially (row-major order), starting from the top row.
 
