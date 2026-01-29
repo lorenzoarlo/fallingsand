@@ -1,23 +1,138 @@
+/**
+ * @file logic.c
+ * @brief Naive implementation of the simulation logic for Falling Sand
+ */
 #include "simulation.h"
-
 #include <stdlib.h>
+#include <string.h>
 
 /**
- * Calculates the next state of the universe based on the current state.
- * This is a dump implementation that just copies the current state.
+ * @brief Handles the behavior of a SAND particle.
+ * @param u Pointer to the Universe (current state being modified).
+ * @param x Current x-coordinate of the particle.
+ * @param y Current y-coordinate of the particle.
+ * @param generation Current generation index.
  */
+void update_sand(Universe *u, Universe *out, int x, int y, int generation)
+{
+    int below_y = y + 1;
+    unsigned char cell_below = universe_get(u, x, below_y);
+
+    // Check below
+    switch (cell_below)
+    {
+    case P_EMPTY:
+    case P_WATER:
+        universe_set(out, x, below_y, P_SAND); // Swap below cell with sand
+        universe_set(out, x, y, cell_below);   // Insert in cell below
+        return;
+    case P_SAND:
+    case P_WALL:
+        int diag_x = (generation % 2 == 0) ? (x - 1) : (x + 1); // Even: Left, Odd: Right
+        // Check if the specific diagonal is EMPTY (Strict rule: do not swap with water on diagonal)
+        if (universe_get(u, diag_x, below_y) == P_EMPTY)
+        {
+            universe_set(out, diag_x, below_y, P_SAND); // Move sand to diagonal
+            universe_set(out, x, y, P_EMPTY);           // Leave current cell empty
+        }
+    default:
+        return;
+    }
+}
+
+/**
+ * @brief Handles the behavior of a WATER particle.
+ * @param u Pointer to the Universe (current state being modified).
+ * @param x Current x-coordinate of the particle.
+ * @param y Current y-coordinate of the particle.
+ * @param generation Current generation index.
+ */
+void update_water(Universe *u, Universe *out, int x, int y, int generation)
+{
+    int below_y = y + 1;
+    unsigned char cell_below = universe_get(u, x, below_y);
+
+    switch (cell_below)
+    {
+    case P_EMPTY:
+        universe_swap(u, x, y, x, below_y);
+        return;
+    case P_WALL:
+    case P_SAND:
+        int left_x = x - 1;
+        int right_x = x + 1;
+        int first_x, second_x;
+        first_x = (generation % 2 == 0) ? left_x : right_x;
+        second_x = (generation % 2 == 0) ? right_x : left_x;
+
+        // Check first diagonal
+        if (universe_get(u, first_x, below_y) == P_EMPTY)
+        {
+            universe_swap(u, x, y, first_x, below_y);
+            return;
+        }
+        // Check second diagonal
+        if (universe_get(u, second_x, below_y) == P_EMPTY)
+        {
+            universe_swap(u, x, y, second_x, below_y);
+            return;
+        }
+    default:
+        break;
+    }
+
+    // Horizontal Movement (Flow)
+    int left_x = x - 1;
+    int right_x = x + 1;
+    int h_first = (generation % 2 == 0) ? right_x : left_x;
+
+    int h_second = (generation % 2 == 0) ? left_x : right_x;
+
+    if (universe_get(u, h_first, y) == P_EMPTY)
+    {
+        universe_swap(u, x, y, h_first, y);
+    }
+    else if (universe_get(u, h_second, y) == P_EMPTY)
+    {
+        universe_swap(u, x, y, h_second, y);
+    }
+}
+
 Universe *next(Universe *u, int generation)
 {
-    // Create a new universe initialized as empty (or copy of u)
+    // Create a new universe to hold the next state.
     Universe *new_u = universe_create(u->width, u->height);
-
-    // Simple logic: Copy everything as is (No physics)
-    for (int y = 0; y < u->height; y++)
+    if (!new_u)
     {
-        for (int x = 0; x < u->width; x++)
+        return NULL;
+    }
+
+    // Deep copy the current state to the new universe
+    memcpy(new_u->cells, u->cells, u->width * u->height * sizeof(unsigned char));
+
+    int is_odd = generation % 2 == 0;
+    int step_x = 1 - (is_odd * 2);
+    int start_x = is_odd * (new_u->width - 1);
+
+    // Iteration Order: Top to Bottom
+    for (int y = 0; y < new_u->height; y++)
+    {
+
+        for (int x = 0; x < new_u->width; x++)
         {
-            universe_set(new_u, x, y, universe_get(u, x, y));
+            int real_x = start_x + (x * step_x);
+            unsigned char cell = universe_get(u, real_x, y);
+            switch (cell)
+            {
+            case P_SAND:
+                update_sand(u, new_u, x, y, generation);
+                break;
+            case P_WATER:
+                update_water(u, new_u, x, y, generation);
+                break;
+            }
         }
     }
+
     return new_u;
 }

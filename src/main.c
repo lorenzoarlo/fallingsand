@@ -14,12 +14,9 @@
 #include "test.h"
 #include "simulation.h"
 
-// Default scale factor for exported images
-#define IMG_SCALE 1
-
 int main(int argc, char *argv[])
 {
-    // 1. Parse CLI arguments
+    // Parsing command-line arguments
     CLIConfig config;
     if (!parse_arguments(argc, argv, &config))
     {
@@ -27,9 +24,11 @@ int main(int argc, char *argv[])
     }
 
     printf("Starting simulation...\n");
-    printf("Input: %s\nOutput: %s\nFrames: %d\n", config.input_filename, config.output_filename, config.frames);
+    printf("Input file: %s\n", config.input_filename);
+    printf("Output: %s\n", config.output_filename);
+    printf("Frames to simulate: %d\n", config.frames);
 
-    // 2. Load initial state
+    // Initial state
     int width, height, initial_frames;
     FILE *input_file = io_open_read(config.input_filename, &width, &height, &initial_frames);
     if (!input_file)
@@ -55,11 +54,11 @@ int main(int argc, char *argv[])
         fclose(input_file);
         return 1;
     }
-    
+
     // Close input file, we don't need subsequent frames from input
     fclose(input_file);
 
-    // 3. Prepare output file
+    // Prepare output file
     FILE *output_file = io_create_file(config.output_filename, width, height);
     if (!output_file)
     {
@@ -68,33 +67,44 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // 4. Simulation Loop
+    // Simulation Loop
     for (int i = 0; i < config.frames; i++)
     {
         // Calculate next generation
         Universe *next_universe = next(current_universe, i);
-        
+
         if (!next_universe)
         {
-            fprintf(stderr, "Error: Simulation failed at frame %d\n", i);
+            fprintf(stderr, "Error at frame %d\n", i);
             break;
         }
 
         // Append to .sand file
         io_append_frame(output_file, next_universe);
 
-        // Export image if requested
-        if (config.output_folder != NULL)
-        {
-            char image_path[512];
-            // Format: folder/0001.ppm (1-based index for user friendliness)
-            snprintf(image_path, sizeof(image_path), "%s/%04d.ppm", config.output_folder, i + 1);
-            universe_export_image(next_universe, image_path, IMG_SCALE);
-        }
-
         // Clean up old state and move to new state
         universe_destroy(current_universe);
         current_universe = next_universe;
+    }
+
+    // Export image if requested
+    if (config.output_folder != NULL)
+    {
+        // Open the output .sand file to read frames for image export
+        // Reuse same variables for width, height, frames
+        FILE *file = io_open_read(config.output_filename, &width, &height, &initial_frames);
+        for (int i = 0; i < config.frames; i++)
+        {
+            Universe *u;
+            char image_path[512];
+            // Create the image path string: folder/0000.ppm
+            // 0 based because the first should be the original one
+            snprintf(image_path, sizeof(image_path), "%s/%04d.ppm", config.output_folder, i + 1);
+            io_read_frame(file, u);
+            universe_export_image(u, image_path, config.scale);
+            universe_destroy(u);
+        }
+        fclose(file);
     }
 
     // Clean up final state and close output file
@@ -103,11 +113,11 @@ int main(int argc, char *argv[])
 
     printf("Simulation completed.\n");
 
-    // 5. Test Verification (if requested)
+    // Test verification if test file is provided
     if (config.test_filename != NULL)
     {
-        printf("Running verification against: %s\n", config.test_filename);
-        
+        printf("Running verification against %s\n", config.test_filename);
+
         Universe ***diff_sequence = NULL; // Will point to array of Universe pointers
         int diff_frames = 0;
         Universe **diffs_array = NULL;
@@ -121,7 +131,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            fprintf(stderr, "Test FAILED (Error code: %d). Output differs from reference.\n", result);
+            fprintf(stderr, "Test FAILED (code %d). Output differs from reference.\n", result);
 
             // If output folder is available, save difference images
             if (config.output_folder != NULL && diffs_array != NULL)
@@ -133,7 +143,7 @@ int main(int argc, char *argv[])
                     {
                         char diff_path[512];
                         snprintf(diff_path, sizeof(diff_path), "%s/diff_%04d.ppm", config.output_folder, k + 1);
-                        universe_export_image(diffs_array[k], diff_path, IMG_SCALE);
+                        universe_export_image(diffs_array[k], diff_path, config.scale);
                     }
                 }
             }
@@ -144,7 +154,8 @@ int main(int argc, char *argv[])
         {
             for (int k = 0; k < diff_frames; k++)
             {
-                if (diffs_array[k]) universe_destroy(diffs_array[k]);
+                if (diffs_array[k])
+                    universe_destroy(diffs_array[k]);
             }
             free(diffs_array);
         }

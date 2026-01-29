@@ -1,13 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 project(FallingSandSimulation)
 
-set(CMAKE_C_STANDARD 99)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
 
 # Define source files for the core engine
 set(CORE_SOURCES
@@ -40,5 +39,6 @@ add_executable(fallingsand
     ${SIMULATION_LOGIC}
 )
 
-# Create output directory if it doesn't exist (optional helper)
+
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/output)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/build)

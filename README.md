@@ -1,4 +1,5 @@
 - [Falling sand project](#falling-sand-project)
+  - [Algorithm overview](#algorithm-overview)
     - [Base structure](#base-structure)
     - [Function Prototype](#function-prototype)
     - [`next` function logic](#next-function-logic)
@@ -8,6 +9,7 @@
         - [`SAND`](#sand)
         - [`WATER`](#water)
   - [Change the simulation logic](#change-the-simulation-logic)
+  - [Create a video](#create-a-video)
 
 
 # Falling sand project
@@ -122,24 +124,43 @@ Behavior depends on the environment immediately below the particle:
 
 To make it interchangeable is used a cmake file that can substitute the logic implementation with another one. By default the "naive" logic is used (it uses the `logic.c`).
 
-`bash
+```bash
 cmake . && make
-`
+```
 
 To use a different logic implementation, specify it when running cmake. For example, to use the "optimized" logic:
 
 ```bash
-cmake -DSIMULATION_LOGIC="src/optimized.c" . && make
+cmake -DSIMULATION_LOGIC="src/file.c" . && make
 ```
 
 To run the simulation (with a test reference):
 
 ```bash
 ./bin/fallingsand input.sand output.sand 30 -oi output_folder -t test_reference.sand
-`
+```
+
+### Default logic implementation
 
 For example
 
 ```bash
-./bin/fallingsand assets/sample-1.sand output/output-sample-1.sand 30 -oi output/
+./bin/fallingsand assets/sample-1.sand output/output-sample-1.sand 500 -oi output/
+```
+or you can build it with
+
+```bash
+make default_video
+```
+
+### Freeze logic implementation
+
+```bash
+cmake -DSIMULATION_LOGIC="src/utility/freeze.c" . && make
+```
+
+## Create a video 
+It is possible to create a video with all the frames using ffmpeg
+```bash
+ffmpeg -framerate 60 -i output/%04d.ppm -c:v libx264 -pix_fmt yuv420p output/animation.mp4
 ```

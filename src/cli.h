@@ -15,6 +15,7 @@ typedef struct
     int frames;            // Number of frames to simulate
     char *test_filename;   // Path for test file (optional)
     char *output_folder;   // Folder to save output images (optional)
+    int scale;             // Scale factor for exported images (optional)
 } CLIConfig;
 
 /**

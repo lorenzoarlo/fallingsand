@@ -1,6 +1,5 @@
 #include "cli.h"
 
-
 void cli_help(const char *prog_name)
 {
     printf("Usage: %s <input_file> <output_file> <frames> [options]\n\n", prog_name);
@@ -9,6 +8,7 @@ void cli_help(const char *prog_name)
     printf("\toutput_file    : Path for output .sand file to store simulation frames\n");
     printf("\tframes         : Number of frames to simulate (positive integer)\n");
     printf("Options:\n");
+    printf("\t -s <scale>    : (Optional) Scale factor for exported images (default: 1)\n");
     printf("\t-oi <folder>    : (Optional) Folder to save output images for each frame\n");
     printf("\t-t <file>      : (Optional) Path for test file\n");
 }
@@ -70,6 +70,19 @@ int parse_arguments(int argc, char *argv[], CLIConfig *config)
             else
             {
                 fprintf(stderr, "Error: Option -t requires a file path.\n");
+                return 0;
+            }
+        }
+        else if (strcmp(argv[i], "-s") == 0)
+        {
+            // Scale factor is handled in main.c, just skip the next argument here
+            if (i + 1 < argc)
+            {
+                config->scale = atoi(argv[++i]);
+            }
+            else
+            {
+                fprintf(stderr, "Error: Option -s requires a scale factor.\n");
                 return 0;
             }
         }

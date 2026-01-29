@@ -108,7 +108,7 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
     if (success)
     {
         *out_diff_sequence = diffs;
-        return 0; // Successo
+        return 0;
     }
 
     for (int k = 0; k < f_a; k++)

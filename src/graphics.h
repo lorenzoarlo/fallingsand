@@ -10,6 +10,8 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
+#define GRAPHICS_FILE_EXTENSION "extension" // to override if needed
+
 /**
  * Simple structure to represent an RGB color.
  */
