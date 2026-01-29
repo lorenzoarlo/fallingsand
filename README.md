@@ -14,7 +14,7 @@
 
 The falling sand project is a simulation of particles that interact with each other based on simple physical rules. The main types of particles are empty space, walls, sand, and water. Each particle type has its own behavior, such as falling under gravity or flowing.
 
-## Algorithm overview
+## Algorithm overview
 
 The simulation consists of four distinct particle types, each represented by a specific integer value:
 
