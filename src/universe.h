@@ -43,6 +43,16 @@ Universe *universe_create(int width, int height);
 void universe_destroy(Universe *universe);
 
 /**
+ * @brief Checks if the given coordinates are out of bounds in the Universe.
+ *
+ * @param universe Pointer to the Universe.
+ * @param x The x-coordinate.
+ * @param y The y-coordinate.
+ * @return 1 if out of bounds, 0 otherwise.
+ */
+int universe_out_of_bounds(Universe *universe, int x, int y);
+
+/**
  * @brief Gets the particle type at the specified coordinates in the Universe.
  *
  * @param universe Pointer to the Universe.
@@ -62,16 +72,5 @@ unsigned char universe_get(Universe *universe, int x, int y);
  * @return The particle type at the specified coordinates.
  */
 void universe_set(Universe *universe, int x, int y, unsigned char value);
-
-/**
- * @brief Swaps the particle types at two specified coordinates in the Universe.
- *
- * @param universe Pointer to the Universe.
- * @param x1 The x-coordinate of the first cell.
- * @param y1 The y-coordinate of the first cell.
- * @param x2 The x-coordinate of the second cell.
- * @param y2 The y-coordinate of the second cell.
- */
-void universe_swap(Universe *universe, int x1, int y1, int x2, int y2);
 
 #endif

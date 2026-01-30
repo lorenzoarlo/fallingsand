@@ -70,6 +70,8 @@ The grid must be traversed from **Top to Bottom**. The horizontal direction of t
 - **Even Generation** (`generation % 2 == 0`): Iterate from **Left Right**.
 - **Odd Generation** (`generation % 2 != 0`): Iterate from **Right Left**.
 
+If a particle is already been updated in the current generation, it **should not be processed again**.
+
 #### Particle behaviors
 
 ##### `EMPTY` and `WALL`
@@ -78,27 +80,35 @@ The grid must be traversed from **Top to Bottom**. The horizontal direction of t
 
 ##### `SAND`
 
-Behavior depends on the environment immediately below the particle:
+Behavior depends on the environment immediately below the particle.
+It is needed to check if the "targeted cell" is already updated. 
+If so, in a double buffer implementation, it is necessary to check the "targeted cell" of the "next universe".
+
+> CHANGES: Specified this behavior more clearly.
 
 1. **If the cell below is `EMPTY`:**
 
 - Move the `SAND` particle down.
 
-2. **If the cell below is `WATER`:**
-
-- **Swap positions** with the `WATER` particle (simulating density).
-
-3. **If the cell below is `SAND` or `WALL`:**
+2. **If the cell below is `SAND` or `WALL`:**
 
 - Check **one** diagonal based on the generation parity:
 - _Even Generation:_ Check the **Bottom-Left** diagonal.
 - _Odd Generation:_ Check the **Bottom-Right** diagonal.
 
-- If the checked diagonal is `EMPTY`, move there else remain stationary. (Note: Do _not_ check the other diagonal, and do not swap if the diagonal contains `WATER`).
+- If the checked diagonal is `EMPTY`, move there. (Note: Do _not_ check the other diagonal, and do not swap if the diagonal contains `WATER`).
 
+3. **If the cell below is `WATER`:**
+
+- **Swap positions** with the `WATER` particle (simulating density).
+
+> CHANGES: Swapped point 2 to 3 (before was inverse). 
+ 
 ##### `WATER`
 
-Behavior depends on the environment immediately below the particle:
+Behavior depends on the environment immediately below the particle.
+It is needed to check if the "targeted cell" is already updated. 
+If so, in a double buffer implementation, it is necessary to check the "targeted cell" of the "next universe".
 
 1. **Vertical Movement:**
 

@@ -54,10 +54,15 @@ void universe_destroy(Universe *u)
     }
 }
 
+int universe_out_of_bounds(Universe *universe, int x, int y)
+{
+    return (x < 0 || x >= universe->width || y < 0 || y >= universe->height);
+}
+
 unsigned char universe_get(Universe *u, int x, int y)
 {
     // If outside bounds, return P_WALL
-    if (x < 0 || x >= u->width || y < 0 || y >= u->height)
+    if (universe_out_of_bounds(u, x, y))
     {
         /**
          * Out of bounds reads return P_WALL
@@ -71,7 +76,7 @@ unsigned char universe_get(Universe *u, int x, int y)
 void universe_set(Universe *u, int x, int y, unsigned char value)
 {
     // If outside bounds, do nothing
-    if (x < 0 || x >= u->width || y < 0 || y >= u->height)
+    if (universe_out_of_bounds(u, x, y))
     {
         /**
          * Out of bounds writes are ignored
@@ -82,17 +87,3 @@ void universe_set(Universe *u, int x, int y, unsigned char value)
     u->cells[UINDEX(x, y, u->width)] = value;
 }
 
-void universe_swap(Universe *u, int x1, int y1, int x2, int y2)
-{
-    // Validate coordinates
-    int valid1 = (x1 >= 0 && x1 < u->width && y1 >= 0 && y1 < u->height);
-    int valid2 = (x2 >= 0 && x2 < u->width && y2 >= 0 && y2 < u->height);
-
-    if (valid1 && valid2)
-    {
-        // Swap the values at the two coordinates
-        unsigned char temp = u->cells[UINDEX(x1, y1, u->width)];
-        u->cells[UINDEX(x1, y1, u->width)] = u->cells[UINDEX(x2, y2, u->width)];
-        u->cells[UINDEX(x2, y2, u->width)] = temp;
-    }
-}

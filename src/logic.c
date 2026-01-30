@@ -8,41 +8,104 @@
 #include <stdio.h> // For perror
 
 /**
+ * @brief Wrapper structure to hold the current universe and a clock buffer.
+ */
+typedef struct WrapUniverse
+{
+    Universe *current;
+    unsigned char *clock;
+} WrapUniverse;
+
+/**
+ * @brief Checks if the cell at (x, y) has already been updated in the current generation.
+ * @param in Pointer to the WrapUniverse containing the clock buffer.
+ * @param x The x-coordinate of the cell.
+ * @param y The y-coordinate of the cell.
+ */
+int already_updated(WrapUniverse *in, int x, int y)
+{
+    if (universe_out_of_bounds(in->current, x, y))
+    {
+        return 0; // Out of bounds
+    }
+    return in->clock[UINDEX(x, y, in->current->width)] == 1;
+}
+
+/**
+ * @brief Marks the cell at (x, y) as updated in the current generation.
+ * @param in Pointer to the WrapUniverse containing the clock buffer.
+ * @param x The x-coordinate of the cell.
+ * @param y The y-coordinate of the cell.
+ */
+void update_cellsclock(WrapUniverse *in, int x, int y)
+{
+    if (universe_out_of_bounds(in->current, x, y))
+    {
+        return; // Out of bounds
+    }
+    in->clock[UINDEX(x, y, in->current->width)] = 1;
+}
+
+/**
+ * @brief Gets the particle type at (x, y) by verifying if already updated.
+ * @param in Pointer to the WrapUniverse containing the current universe.
+ * @param out Pointer to the Universe representing the next state.
+ * @param x The x-coordinate.
+ * @param y The y-coordinate.
+ * @return The particle type at the specified coordinates.
+ */
+unsigned char universe_wrap_get(WrapUniverse *in, Universe *out, int x, int y)
+{
+    return already_updated(in, x, y) ? universe_get(out, x, y) : universe_get(in->current, x, y);
+}
+
+/**
  * @brief Handles the behavior of a SAND particle.
  * @param u Pointer to the Universe (current state being modified).
  * @param x Current x-coordinate of the particle.
  * @param y Current y-coordinate of the particle.
  * @param generation Current generation index.
  */
-void update_sand(Universe *u, Universe *out, int x, int y, int generation)
+void update_sand(WrapUniverse *in, Universe *out, int x, int y, int generation)
 {
     int below_y = y + 1;
-    unsigned char cell_below = universe_get(u, x, below_y);
+    unsigned char cell_below = universe_wrap_get(in, out, x, below_y);
 
-    // Check below
-    switch (cell_below)
-    {
-    case P_EMPTY:
-    case P_WATER:
+    if (cell_below == P_EMPTY)
     {
         universe_set(out, x, below_y, P_SAND); // Swap below cell with sand
-        universe_set(out, x, y, cell_below);   // Insert in cell below
+        universe_set(out, x, y, P_EMPTY);      // Insert in cell below.
+        // It is possible to avoid this if already updated
+        update_cellsclock(in, x, below_y); // Mark as updated also the below cell
         return;
     }
-    case P_SAND:
-    case P_WALL:
+
+    // Cannot move down; try diagonals
+    if (cell_below == P_SAND || cell_below == P_WALL)
     {
         int diag_x = (generation % 2 == 0) ? (x - 1) : (x + 1); // Even: Left, Odd: Right
         // Check if the specific diagonal is EMPTY (Strict rule: do not swap with water on diagonal)
-        if (universe_get(u, diag_x, below_y) == P_EMPTY)
+        if (universe_wrap_get(in, out, diag_x, below_y) == P_EMPTY)
         {
             universe_set(out, diag_x, below_y, P_SAND); // Move sand to diagonal
             universe_set(out, x, y, P_EMPTY);           // Leave current cell empty
+            update_cellsclock(in, diag_x, below_y);     // Mark as updated also the other cell
+            return;
         }
     }
-    default:
+
+    // Check if can swap with water below
+    if (cell_below == P_WATER)
+    {
+        universe_set(out, x, below_y, P_SAND); // Swap below cell with sand
+        universe_set(out, x, y, P_WATER);      // Insert in cell below.
+        // It is possible to avoid this if already updated
+        update_cellsclock(in, x, below_y); // Mark as updated also the below cell
         return;
     }
+
+    // Stay in place
+    universe_set(out, x, y, P_SAND); // Stay in place
 }
 
 /**
@@ -52,21 +115,23 @@ void update_sand(Universe *u, Universe *out, int x, int y, int generation)
  * @param y Current y-coordinate of the particle.
  * @param generation Current generation index.
  */
-void update_water(Universe *u, Universe *out, int x, int y, int generation)
+void update_water(WrapUniverse *in, Universe *out, int x, int y, int generation)
 {
-    int below_y = y + 1;
-    unsigned char cell_below = universe_get(u, x, below_y);
+    // Unwrap
+    Universe *u = in->current;
 
-    switch (cell_below)
-    {
-    case P_EMPTY:
+    int below_y = y + 1;
+    unsigned char cell_below = universe_wrap_get(in, out, x, below_y);
+
+    if (cell_below == P_EMPTY)
     {
         universe_set(out, x, below_y, P_WATER); // Swap below cell with water
         universe_set(out, x, y, P_EMPTY);       // Insert in cell below
+        update_cellsclock(in, x, below_y);      // Mark as updated also the below cell
         return;
     }
-    case P_WALL:
-    case P_SAND:
+
+    if (cell_below == P_WALL || cell_below == P_WATER || cell_below == P_SAND)
     {
         int left_x = x - 1;
         int right_x = x + 1;
@@ -77,23 +142,21 @@ void update_water(Universe *u, Universe *out, int x, int y, int generation)
         second_x = (generation % 2 == 0) ? right_x : left_x;
 
         // Check first diagonal
-        if (universe_get(u, first_x, below_y) == P_EMPTY)
+        if (universe_wrap_get(in, out, first_x, below_y) == P_EMPTY)
         {
             universe_set(out, first_x, below_y, P_WATER); // Move water to diagonal
             universe_set(out, x, y, P_EMPTY);             // Leave current cell empty
+            update_cellsclock(in, first_x, below_y);      // Mark as updated also the other cell
             return;
         }
         // Check second diagonal
-        if (universe_get(u, second_x, below_y) == P_EMPTY)
+        if (universe_wrap_get(in, out, second_x, below_y) == P_EMPTY)
         {
-
             universe_set(out, second_x, below_y, P_WATER); // Move water to diagonal
             universe_set(out, x, y, P_EMPTY);              // Leave current cell empty
+            update_cellsclock(in, second_x, below_y);      // Mark as updated also the other cell
             return;
         }
-    }
-    default:
-        break;
     }
 
     // If we are here, it means that water couldn't go down or diagonally
@@ -105,16 +168,35 @@ void update_water(Universe *u, Universe *out, int x, int y, int generation)
     int h_first = (generation % 2 == 0) ? right_x : left_x;
     int h_second = (generation % 2 == 0) ? left_x : right_x;
 
-    if (universe_get(u, h_first, y) == P_EMPTY)
+    if (universe_wrap_get(in, out, h_first, y) == P_EMPTY)
     {
-        universe_set(out, x, y, P_EMPTY);
         universe_set(out, h_first, y, P_WATER);
+        universe_set(out, x, y, P_EMPTY);
+        update_cellsclock(in, h_first, y); // Mark as updated also the moved cell
+        return;
     }
-    else if (universe_get(u, h_second, y) == P_EMPTY)
+
+    if (universe_wrap_get(in, out, h_second, y) == P_EMPTY)
     {
         universe_set(out, x, y, P_EMPTY);
         universe_set(out, h_second, y, P_WATER);
+        update_cellsclock(in, h_second, y); // Mark as updated also the moved cell
+        return;
     }
+
+    universe_set(out, x, y, P_WATER); // Stay in place
+}
+
+void update_wall(WrapUniverse *in, Universe *out, int x, int y, int generation)
+{
+    // WALL particles do not move; they remain static.
+    universe_set(out, x, y, P_WALL);
+}
+
+void update_empty(WrapUniverse *in, Universe *out, int x, int y, int generation)
+{
+    // EMPTY cells remain empty.
+    universe_set(out, x, y, P_EMPTY);
 }
 
 Universe *next(Universe *u, int generation)
@@ -127,12 +209,13 @@ Universe *next(Universe *u, int generation)
         return NULL;
     }
 
-    // Deep copy the current state to the new universe
-    memcpy(new_u->cells, u->cells, u->width * u->height * sizeof(unsigned char));
-
-    int is_odd = generation % 2 == 0;
+    int is_odd = generation % 2 != 0;
     int step_x = 1 - (is_odd * 2);
     int start_x = is_odd * (new_u->width - 1);
+
+    // Create clock buffer
+    unsigned char *clock_buffer = (unsigned char *)calloc(u->width * u->height, sizeof(unsigned char));
+    WrapUniverse wrap = {u, clock_buffer};
 
     // Iteration Order: Top to Bottom
     for (int y = 0; y < new_u->height; y++)
@@ -140,17 +223,35 @@ Universe *next(Universe *u, int generation)
         for (int x = 0; x < new_u->width; x++)
         {
             int real_x = start_x + (x * step_x);
+            // Update only if not already updated
+            if (already_updated(&wrap, real_x, y))
+            {
+                continue; // Skip already updated cells
+            }
+            // Mark as updated
+            update_cellsclock(&wrap, real_x, y);
+
             unsigned char cell = universe_get(u, real_x, y);
             switch (cell)
             {
             case P_SAND:
             {
-                update_sand(u, new_u, real_x, y, generation);
+                update_sand(&wrap, new_u, real_x, y, generation);
                 break;
             }
             case P_WATER:
             {
-                update_water(u, new_u, real_x, y, generation);
+                update_water(&wrap, new_u, real_x, y, generation);
+                break;
+            }
+            case P_WALL:
+            {
+                update_wall(&wrap, new_u, real_x, y, generation);
+                break;
+            }
+            case P_EMPTY:
+            {
+                update_empty(&wrap, new_u, real_x, y, generation);
                 break;
             }
             default:
@@ -159,5 +260,6 @@ Universe *next(Universe *u, int generation)
         }
     }
 
+    free(clock_buffer);
     return new_u;
 }

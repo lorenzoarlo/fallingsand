@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h> // For mkdir handling if needed (mostly POSIX)
+#include <unistd.h>   // For fork(), sysconf()
+#include <sys/wait.h> // For wait()
 
 #include "cli.h"
 #include "io.h"
@@ -80,6 +82,7 @@ Universe *setup(int width, int height, FILE *input_file)
     }
     return current_universe;
 }
+
 /**
  * @brief Run the testing verification against a reference .sand file.
  * @param config CLIConfig structure with test parameters.
@@ -135,6 +138,101 @@ void testing(CLIConfig config)
     free(diffs_array);
 }
 
+/**
+ * @brief Handles parallel image generation using fork().
+ * Compatible with macOS and Unix systems.
+ * * @param config The CLI configuration.
+ * @param width Universe width.
+ * @param height Universe height.
+ * @param total_frames Total frames to process.
+ */
+void produce_images_parallel(CLIConfig config, int width, int height, int total_frames)
+{
+    if (config.output_folder == NULL)
+    {
+        return;
+    }
+
+    printf("Starting parallel image generation...\n");
+
+    // Get number of available processors
+    // _SC_NPROCESSORS_ONLN is standard POSIX
+    long num_procs = sysconf(_SC_NPROCESSORS_ONLN);
+    if (num_procs < 1)
+        num_procs = 1;
+
+    printf("Spawning %ld processes for image generation.\n", num_procs);
+
+    pid_t pid;
+    long child_id = -1;
+
+    // Fork loop
+    for (long i = 0; i < num_procs; i++)
+    {
+        pid = fork();
+        if (pid < 0)
+        {
+            perror("Fork failed");
+            exit(GENERIC_ERROR);
+        }
+        else if (pid == 0)
+        {
+            // We are in the child process
+            child_id = i;
+            break; // Break the loop so the child doesn't fork more children
+        }
+    }
+
+    if (child_id != -1)
+    {
+        // === CHILD PROCESS LOGIC ===
+
+        // Open the generated .sand file for reading
+        // We use dummy variables for w, h, f because we already know them
+        int w, h, f;
+        FILE *fp = io_open_read(config.output_filename, &w, &h, &f);
+        if (!fp)
+        {
+            perror("Child process: error opening .sand file");
+            exit(GENERIC_ERROR);
+        }
+
+        Universe *u = universe_create(width, height);
+
+        // Iterate through all frames in the file
+        // Note: Depending on io implementation, we might need to read sequentially
+        // to advance the file pointer correctly.
+        for (int i = 0; i < total_frames; i++)
+        {
+            // Read the frame into universe u
+            if (io_read_frame(fp, u) != 0)
+                break;
+
+            // Round-robin distribution:
+            // Process ONLY if (frame_index % num_procs) matches this child's ID
+            if ((i % num_procs) == child_id)
+            {
+                char image_path[512];
+                // i + 1 for user friendly 1-based index
+                snprintf(image_path, sizeof(image_path), "%s/%04d.png", config.output_folder, i + 1);
+                universe_export_image(u, image_path, config.scale);
+            }
+        }
+
+        universe_destroy(u);
+        fclose(fp);
+        exit(SUCCESS); // Child exits here
+    }
+    else
+    {
+        // Wait for all children to finish
+        int status;
+        while (wait(&status) > 0)
+            ;
+        printf("All images generated.\n");
+    }
+}
+
 int main(int argc, char *argv[])
 {
     int width, height, frames;
@@ -158,43 +256,41 @@ int main(int argc, char *argv[])
         exit(GENERIC_ERROR);
     }
     printf("Created output file: %s\n", config.output_filename);
-    // Simulation Loop
+
+    // --- PHASE 1: SIMULATION & FILE WRITING ---
+    // Note: Image generation removed from this loop to allow parallel processing later
     for (int i = 0; i < config.frames; i++)
     {
-        printf("Simulating frame %d / %d\n", i + 1, config.frames);
+        printf("Simulating frame %d / %d\r", i + 1, config.frames);
+        fflush(stdout); // Update progress on same line
+
         // Calculate next generation
         Universe *next_universe = next(current_universe, i);
 
         if (!next_universe)
         {
-            fprintf(stderr, "Error at frame %d\n", i);
+            fprintf(stderr, "\nError at frame %d\n", i);
             break;
         }
 
-        printf("Simulated frame %d / %d\n", i + 1, config.frames);
-        
         // Append to .sand file
         io_append_frame(output_file, next_universe);
-
-        // Export image if requested
-        if (config.output_folder != NULL)
-        {
-            char image_path[512];
-            // Format: folder/0001.ppm (1-based index for user friendliness)
-            snprintf(image_path, sizeof(image_path), "%s/%04d.png", config.output_folder, i + 1);
-            universe_export_image(next_universe, image_path, config.scale);
-        }
 
         // Clean up old state and move to new state
         universe_destroy(current_universe);
         current_universe = next_universe;
     }
+    printf("\nSimulation completed. Data saved.\n");
 
     // Clean up final state and close output file
     universe_destroy(current_universe);
     fclose(output_file);
 
-    printf("Simulation completed.\n");
+    // Now that the .sand file is complete, we generate images in parallel
+    if (config.output_folder != NULL)
+    {
+        produce_images_parallel(config, width, height, config.frames);
+    }
 
     // Test verification if test file is provided
     if (config.test_filename != NULL)

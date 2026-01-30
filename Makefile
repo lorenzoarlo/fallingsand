@@ -19,6 +19,6 @@ clean:
 	rm -rf bin
 clean_output:
 	rm -rf output/*.sand
-	rm -rf output/images/*.png
-	rm -rf output/images/*.ppm 
-	rm -rf output/videos/animation.mp4
+	rm -rf output/images/**/*.png
+	rm -rf output/images/**/*.ppm 
+	rm -rf output/videos/*.mp4
