@@ -8,6 +8,11 @@
  */
 #ifndef CLI_H
 #define CLI_H
+
+#define CLI_SUCCESS 0
+#define CLI_FAILURE_PARAMETER_MISSING 1
+#define CLI_FAILURE_INVALID_VALUE 2
+#define CLI_FAILURE_UNKNOWN_PARAMETER 3
 typedef struct
 {
     char *input_filename;  // Initial state. Should be in .sand format. It will start from the last written file.
@@ -23,7 +28,7 @@ typedef struct
  * @param argc Argument count.
  * @param argv Argument vector.
  * @param config Pointer to CLIConfig structure to be filled.
- * @return true if parsing was successful, false otherwise.
+ * @return 0 if parsing was successful, false otherwise.
  */
 int parse_arguments(int argc, char *argv[], CLIConfig *config);
 

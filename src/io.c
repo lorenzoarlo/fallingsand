@@ -4,6 +4,10 @@
  * It defines a new file format ".sand" to store simulation frames.
  */
 #include "io.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 
 FILE *io_create_file(const char *filename, int width, int height)
 {
@@ -11,6 +15,7 @@ FILE *io_create_file(const char *filename, int width, int height)
     FILE *file = fopen(filename, "wb");
     if (!file)
     {
+        perror("io_create_file -> Error creating file!");
         return NULL;
     }
 
@@ -31,6 +36,7 @@ void io_append_frame(FILE *file, Universe *universe)
     // Validate inputs
     if (!file || !universe)
     {
+        perror("io_append_frame -> Invalid file or universe!");
         return;
     }
 
@@ -60,6 +66,7 @@ FILE *io_open_read(const char *filename, int *width, int *height, int *num_frame
     FILE *file = fopen(filename, "rb");
     if (!file)
     {
+        perror("io_open_read -> Error opening file!");
         return NULL;
     }
 
@@ -68,6 +75,7 @@ FILE *io_open_read(const char *filename, int *width, int *height, int *num_frame
     fread(magic, sizeof(char), 4, file);
     if (strncmp(magic, FILE_MAGIC, 4) != 0)
     {
+        perror("io_open_read -> Invalid file format (wrong magic number)!");
         fclose(file);
         return NULL;
     }
@@ -85,12 +93,14 @@ int io_read_frame(FILE *file, Universe *u)
     // Validate inputs
     if (!file || !u)
     {
+        perror("io_read_frame -> Invalid file or universe!");
         return -1;
     }
 
     size_t read = fread(u->cells, sizeof(unsigned char), u->width * u->height, file);
     if (read != (size_t)(u->width * u->height))
     {
+        perror("io_read_frame -> Error reading frame data!");
         return -1;
     }
 

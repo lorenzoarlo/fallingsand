@@ -19,16 +19,16 @@ int parse_arguments(int argc, char *argv[], CLIConfig *config)
     if (argc == 2 && strcmp(argv[1], "help") == 0)
     {
         cli_help(argv[0]);
-        return 0; // Returns 0 because we don't need to start the simulation
+        return CLI_SUCCESS; // Returns success because we don't need to start the simulation
     }
 
     // Validate number of mandatory arguments
     // Must have at least program name + 3 positional args
     if (argc < 4)
     {
-        perror("Error: Invalid number of arguments. Missing mandatory parameters.\n");
+        perror("Error: Invalid number of arguments. Missing mandatory parameters");
         cli_help(argv[0]);
-        return 0;
+        return CLI_FAILURE_PARAMETER_MISSING;
     }
 
     // Parse mandatory positional arguments
@@ -38,62 +38,53 @@ int parse_arguments(int argc, char *argv[], CLIConfig *config)
 
     if (config->frames <= 0)
     {
-        perror("Error: Frames must be a positive integer.\n");
-        return 0;
+        perror("Error, frames must be a positive integer.\n");
+        return CLI_FAILURE_INVALID_VALUE;
     }
 
     // Initialize optional arguments to NULL
     config->output_folder = NULL;
-    config->test_filename = NULL; // Requires 'test_filename' in CLIConfig struct
+    config->test_filename = NULL;
 
     // Parse optional arguments with flags
     for (int i = 4; i < argc; i++)
     {
         if (strcmp(argv[i], "-oi") == 0)
         {
-            if (i + 1 < argc)
+            if (i + 1 >= argc)
             {
-                config->output_folder = argv[++i];
+                fprintf(stderr, "Error, option -oi requires a folder path.\n");
+                return CLI_FAILURE_PARAMETER_MISSING;
             }
-            else
-            {
-                fprintf(stderr, "Error: Option -i requires a folder path.\n");
-                return 0;
-            }
+            // Next argument is the output folder
+            config->output_folder = argv[++i];
         }
         else if (strcmp(argv[i], "-t") == 0)
         {
-            if (i + 1 < argc)
+            if (i + 1 >= argc)
             {
-                config->test_filename = argv[++i];
+                fprintf(stderr, "Error, option -t requires a file path.\n");
+                return CLI_FAILURE_PARAMETER_MISSING;
             }
-            else
-            {
-                fprintf(stderr, "Error: Option -t requires a file path.\n");
-                return 0;
-            }
+            config->test_filename = argv[++i];
         }
         else if (strcmp(argv[i], "-s") == 0)
         {
-            // Scale factor is handled in main.c, just skip the next argument here
-            if (i + 1 < argc)
-            {
-                config->scale = atoi(argv[++i]);
-            }
-            else
+            if (i + 1 >= argc)
             {
                 fprintf(stderr, "Error: Option -s requires a scale factor.\n");
-                return 0;
+                return CLI_FAILURE_PARAMETER_MISSING;
             }
+            config->scale = atoi(argv[++i]);
         }
         else
         {
-            fprintf(stderr, "Error: Unknown argument '%s'.\n", argv[i]);
+            fprintf(stderr, "Error, unknown argument '%s'.\n", argv[i]);
             cli_help(argv[0]);
-            return 0;
+            return CLI_FAILURE_UNKNOWN_PARAMETER;
         }
     }
 
     // Successful parsing
-    return 1;
+    return CLI_SUCCESS;
 }

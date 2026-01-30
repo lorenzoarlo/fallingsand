@@ -1,13 +1,11 @@
-
-
-#include "universe.h"
-
 /**
  * @file graphics.h
  * @brief Functions for exporting the Universe as images.
  */
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
+
+#include "universe.h"
 
 /**
  * Simple structure to represent an RGB color.

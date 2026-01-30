@@ -11,6 +11,8 @@
 
 #define GRAPHICS_FILE_EXTENSION "png"
 
+static int ERROR_EXTENSION_FLAG = 0;
+
 /**
  * Mapping function that associates a block type to a color.
  */
@@ -58,7 +60,7 @@ Color get_particle_color(unsigned char cell_type)
 void universe_export_image(Universe *u, const char *filename, int scale)
 {
     // Check parameters
-    if (u == NULL || filename == NULL || scale < 1)
+    if (!u || !filename || scale < 1)
     {
         perror("Error, invalid parameters for image export.\n");
         return;
@@ -69,7 +71,11 @@ void universe_export_image(Universe *u, const char *filename, int scale)
 
     if (len_str < len_suffix || (strcmp(filename + len_str - len_suffix, GRAPHICS_FILE_EXTENSION) != 0))
     {
-        fprintf(stderr, "Error, invalid filename extension for image export. It should end with %s\n", GRAPHICS_FILE_EXTENSION);
+        if (!ERROR_EXTENSION_FLAG)
+        {
+            fprintf(stderr, "Error, invalid filename \"%s\" extension for image export. It should end with %s\n", filename, GRAPHICS_FILE_EXTENSION);
+        }
+        ERROR_EXTENSION_FLAG = 1;
         return;
     }
 
@@ -81,7 +87,7 @@ void universe_export_image(Universe *u, const char *filename, int scale)
     int buffer_size = img_width * img_height * channels;
     unsigned char *image_data = (unsigned char *)malloc(buffer_size);
 
-    if (image_data == NULL)
+    if (!image_data)
     {
         perror("Error allocating memory for image export");
         return;
@@ -115,6 +121,7 @@ void universe_export_image(Universe *u, const char *filename, int scale)
     }
 
     // Write PNG using stb_image_write
+    // Following sbt implementation, calculate stride (number of bytes in a row)
     int stride_in_bytes = img_width * channels;
 
     int result = stbi_write_png(filename, img_width, img_height, channels, image_data, stride_in_bytes);
@@ -128,5 +135,6 @@ void universe_export_image(Universe *u, const char *filename, int scale)
         printf("Image saved in %s with scale %d (Format: PNG)\n", filename, scale);
     }
 
+    // Clean image_data
     free(image_data);
 }

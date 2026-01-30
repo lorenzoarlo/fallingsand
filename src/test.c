@@ -4,28 +4,31 @@
  */
 #include "test.h"
 
+#include "io.h"    // For io_open_read, io_read_frame
+#include <stdio.h> // For fprintf, stderr
+#include <stdlib.h> // For malloc, free
 int test_sand(const char *filename_a, const char *filename_b, Universe ***out_diff_sequence, int *out_frames)
 {
     if (out_frames == NULL)
     {
-        perror("Output frames variable not valid");
+        perror("test_sand -> Output frames variable not valid");
         return PARAMETERS_NO_VALID_ERROR;
     }
     int w_a, h_a, f_a; // width, height, frames for file A
     int w_b, h_b, f_b; // width, height, frames for file B
 
-    // 1. Apertura dei file
+    // Open files
     FILE *fa = io_open_read(filename_a, &w_a, &h_a, &f_a);
-    if (fa == NULL)
+    if (!fa)
     {
-        fprintf(stderr,"Error reading file %s", filename_a);
+        fprintf(stderr, "test_sand -> Error reading file %s", filename_a);
         return FILE_NULL_ERROR;
     }
 
     FILE *fb = io_open_read(filename_b, &w_b, &h_b, &f_b);
-    if (fb == NULL)
+    if (!fb)
     {
-        fprintf(stderr,"Error reading file %s", filename_b);
+        fprintf(stderr, "test_sand -> Error reading file %s", filename_b);
         // Closing previously opened file
         fclose(fa);
         return FILE_NULL_ERROR;
@@ -33,9 +36,9 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
 
     if (w_a != w_b || h_a != h_b || f_a != f_b)
     {
-        fprintf(stderr, "Number of width, height or frames do not match between the two files");
-        fprintf(stderr, "File A - Width: %d, Height: %d, Frames: %d", w_a, h_a, f_a);
-        fprintf(stderr, "File B - Width: %d, Height: %d, Frames: %d", w_b, h_b, f_b);
+        fprintf(stderr, "test_sand -> Number of width, height or frames do not match between the two files");
+        fprintf(stderr, "test_sand -> File A - Width: %d, Height: %d, Frames: %d", w_a, h_a, f_a);
+        fprintf(stderr, "test_sand -> File B - Width: %d, Height: %d, Frames: %d", w_b, h_b, f_b);
 
         fclose(fa);
         fclose(fb);
@@ -44,7 +47,7 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
 
     // Allocate memory for the differences sequence
     Universe **diffs = (Universe **)malloc(sizeof(Universe *) * f_a);
-    if (diffs == NULL)
+    if (!diffs)
     {
         fclose(fa);
         fclose(fb);
@@ -55,9 +58,8 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
     Universe *temp_a = universe_create(w_a, h_a);
     Universe *temp_b = universe_create(w_b, h_b);
 
-    if (temp_a == NULL || temp_b == NULL)
+    if (!temp_a || !temp_b)
     {
-
         if (temp_a)
         {
             universe_destroy(temp_a);
@@ -66,22 +68,24 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
         {
             universe_destroy(temp_b);
         }
+        // Clean resources
         free(diffs);
         fclose(fa);
         fclose(fb);
+        perror("test_sand -> Memory allocation failed for temporary universes");
         return MEMORY_FAIL_ERROR;
     }
 
     int success = 1;
+    // iterate through frames
     for (int i = 0; i < f_a; i++)
     {
-
         diffs[i] = universe_create(w_a, h_a);
 
-        // Leggiamo i frame dai file
+        // Reading frames
         if (io_read_frame(fa, temp_a) != 0 || io_read_frame(fb, temp_b) != 0)
         {
-            perror("Error reading frames from files");
+            perror("test_file -> Error reading frames from test files");
             success = 0;
             break;
         }
@@ -93,7 +97,7 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
             {
                 unsigned char a = universe_get(temp_a, x, y);
                 unsigned char b = universe_get(temp_b, x, y);
-
+                // Mark difference or empty
                 universe_set(diffs[i], x, y, (a == b) ? P_EMPTY : P_ERROR);
             }
         }
@@ -111,6 +115,7 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
         return 0;
     }
 
+    // Clean allocated diffs in case of failure
     for (int k = 0; k < f_a; k++)
     {
         if (diffs[k])

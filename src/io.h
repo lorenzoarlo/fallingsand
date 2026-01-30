@@ -1,7 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "universe.h"
 
 /**
  * @file io.h
@@ -10,6 +6,9 @@
  */
 #ifndef IO_H
 #define IO_H
+
+#include "universe.h"
+#include <stdio.h> // For FILE type
 
 // Magic number: "SAND" as ASCII bytes
 #define FILE_MAGIC "SAND"

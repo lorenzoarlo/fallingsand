@@ -5,6 +5,7 @@
 #include "graphics.h"
 #include <stdio.h>
 #include <stdlib.h>
+
 #define GRAPHICS_FILE_EXTENSION "ppm"
 
 #include <string.h>
@@ -60,9 +61,9 @@ Color get_particle_color(unsigned char cell_type)
  */
 void universe_export_image(Universe *u, const char *filename, int scale)
 {
-    if (u == NULL || filename == NULL || filename || scale < 1)
+    if (!u || !filename || scale < 1)
     {
-        perror("Error, invalid parameters for image export.\n");
+        perror("export_image -> Error, invalid parameters for image export.\n");
         return;
     }
 
@@ -78,9 +79,9 @@ void universe_export_image(Universe *u, const char *filename, int scale)
 
     // Open file for writing
     FILE *fp = fopen(filename, "w");
-    if (fp == NULL)
+    if (!fp)
     {
-        perror("Error opening image file");
+        fprintf(stderr, "Error opening image file %s for writing.\n", filename);
         return;
     }
 
@@ -111,7 +112,7 @@ void universe_export_image(Universe *u, const char *filename, int scale)
                     fprintf(fp, "%d %d %d ", color.r, color.g, color.b);
                 }
             }
-            // Fine di una riga dell'immagine
+            // End of row
             fprintf(fp, "\n");
         }
     }

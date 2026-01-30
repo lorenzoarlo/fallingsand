@@ -3,13 +3,16 @@
  * @brief Implements functions for managing 2D grid of falling sand simulation.
  */
 #include "universe.h"
-#include <stdlib.h>
+
+#include <stdlib.h> // For malloc, calloc, free
+#include <stdio.h>  // For perror
 
 Universe *universe_create(int width, int height)
 {
     // Validate dimensions
     if (width <= 0 || height <= 0)
     {
+        perror("universe_create -> Error, invalid universe dimensions");
         return NULL;
     }
 
@@ -18,6 +21,7 @@ Universe *universe_create(int width, int height)
     // Failed to allocate memory for Universe struct
     if (!u)
     {
+        perror("universe_create -> Error allocating memory for Universe struct");
         return NULL;
     }
 
@@ -30,6 +34,7 @@ Universe *universe_create(int width, int height)
     // Failed to allocate memory for cells
     if (!u->cells)
     {
+        perror("universe_create -> Error allocating memory for Universe cells");
         free(u);
         return NULL;
     }
@@ -54,6 +59,9 @@ unsigned char universe_get(Universe *u, int x, int y)
     // If outside bounds, return P_WALL
     if (x < 0 || x >= u->width || y < 0 || y >= u->height)
     {
+        /**
+         * Out of bounds reads return P_WALL
+         */
         return P_WALL;
     }
 
@@ -65,6 +73,9 @@ void universe_set(Universe *u, int x, int y, unsigned char value)
     // If outside bounds, do nothing
     if (x < 0 || x >= u->width || y < 0 || y >= u->height)
     {
+        /**
+         * Out of bounds writes are ignored
+         */
         return;
     }
 

@@ -2,13 +2,10 @@
  * @file test.h
  * @brief Header file for test functionalities, including comparison of .sand files.
  */
-#include "universe.h"
-#include "io.h"
-#include <stdio.h>
-
 #ifndef TEST_H
 #define TEST_H
 
+#include "universe.h" // For Universe type
 
 
 #define PARAMETERS_NO_VALID_ERROR 1
