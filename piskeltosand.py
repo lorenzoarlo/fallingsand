@@ -1,4 +1,4 @@
-# script to convert Piskel .piskel files to .sand format
+# script to convert Piskel .piskel files to .sand format (Compressed)
 
 import json
 import base64
@@ -11,12 +11,11 @@ P_WALL = 1
 P_SAND = 2
 P_WATER = 3
 
-
 # Here we should define the mapping from RGBA colors to sand pixel types
 COLOR_MAP = {
     (0, 0, 0, 255): P_EMPTY,     # Black -> P_EMPTY
-    (0, 0, 0, 0): P_EMPTY,     # Transparent -> P_EMPTY
-    (255, 0, 0, 255): P_WALL,   # Red -> P_WALL
+    (0, 0, 0, 0): P_EMPTY,       # Transparent -> P_EMPTY
+    (255, 0, 0, 255): P_WALL,    # Red -> P_WALL
     (255, 255, 0, 255): P_SAND,  # Yellow -> P_WALL
     (0, 0, 255, 255): P_WATER    # Blu -> P_WATER
 }
@@ -45,11 +44,11 @@ def piskel_to_sand(piskel_path, sand_path):
     if "base64," in base64_string:
         base64_string = base64_string.split("base64,")[1]
 
-    #  Decode base64 and load image
+    # Decode base64 and load image
     try:
         img_data = base64.b64decode(base64_string)
         image = Image.open(io.BytesIO(img_data)).convert("RGBA")
-        image.show()
+        # image.show() # Optional: display image
     except Exception as e:
         print(f"Error decoding image from Piskel file: {e}")
         return
@@ -73,8 +72,13 @@ def piskel_to_sand(piskel_path, sand_path):
         if not pixels:
             print("Error on loading of image pixels")
             return
+        
         mapped_count = 0
         unknown_count = 0
+        
+        # Variables for bit packing
+        packed_byte = 0
+        pixel_counter = 0
 
         for y in range(height):
             for x in range(width):
@@ -91,8 +95,23 @@ def piskel_to_sand(piskel_path, sand_path):
                             f"Warning: Unknown color {rgba} in ({x},{y}) -> Mapped to P_EMPTY")
                     unknown_count += 1
 
-                # write pixel value
-                f.write(struct.pack('B', value))
+                # PACKING LOGIC:
+                # Calculate shift: 0, 2, 4, or 6 bits based on position in the block of 4
+                shift = (pixel_counter % 4) * 2
+                
+                # Add the 2 bits of 'value' to the current packed byte
+                packed_byte |= (value & 0x03) << shift
+                
+                pixel_counter += 1
+
+                # If we have collected 4 pixels, write the byte and reset
+                if pixel_counter % 4 == 0:
+                    f.write(struct.pack('B', packed_byte))
+                    packed_byte = 0
+
+        # Handle remaining pixels (if total pixels is not a multiple of 4)
+        if pixel_counter % 4 != 0:
+            f.write(struct.pack('B', packed_byte))
 
     print(f"Done, saved in {sand_path}")
     print(
@@ -100,8 +119,9 @@ def piskel_to_sand(piskel_path, sand_path):
 
 
 if __name__ == "__main__":
-    filename = input(
-        "Enter the path to the .piskel file in assets/piskels forlder: ")
+    ASSETS = "assets/"
+    FOLDER = f"{ASSETS}piskels/"
+    filename = input(f"Enter the path to the .piskel file in {FOLDER} forlder: ")
 
     piskel_to_sand(
-        f"piskels/{filename}.piskel", f"{filename}.sand")
+        f"{FOLDER}{filename}.piskel", f"{ASSETS}{filename}.sand")
