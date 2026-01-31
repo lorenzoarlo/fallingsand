@@ -87,23 +87,31 @@ If so, in a double buffer implementation, it is necessary to check the "targeted
 > CHANGES: Specified this behavior more clearly.
 
 1. **If the cell below is `EMPTY`:**
-
 - Move the `SAND` particle down.
 
-2. **If the cell below is `SAND` or `WALL`:**
 
-- Check **one** diagonal based on the generation parity:
-- _Even Generation:_ Check the **Bottom-Left** diagonal.
-- _Odd Generation:_ Check the **Bottom-Right** diagonal.
+2. **If the cell below is blocked (not `EMPTY`):**
+- Attempt to slide diagonally into an `EMPTY` space.
+- The check order depends on **generation parity** (to create random distribution):
+- *Even Generation:* Check **Left** first, then **Right**.
+- *Odd Generation:* Check **Right** first, then **Left**.
 
-- If the checked diagonal is `EMPTY`, move there. (Note: Do _not_ check the other diagonal, and do not swap if the diagonal contains `WATER`).
+- If the primary diagonal is `EMPTY`, move there.
+- If the primary is blocked, check the secondary diagonal.
 
-3. **If the cell below is `WATER`:**
 
-- **Swap positions** with the `WATER` particle (simulating density).
+3. **If the cell below is `WATER` (and movement was not possible above):**
+- Apply a **viscosity check** (`(x + y + generation) % 2 != 0`, almost 50%).
+- If the check passes (~50% chance), **swap positions** with the `WATER` particle (simulating density).
+- Otherwise, stay in place 
 
-> CHANGES: Swapped point 2 to 3 (before was inverse). 
- 
+> this prevents `WATER` from displacing upwards too rapidly
+
+4. **Else:**
+- Stay in the current position.
+
+> CHANGES: Changed logic of `SAND`.
+
 ##### `WATER`
 
 Behavior depends on the environment immediately below the particle.

@@ -71,43 +71,59 @@ void update_sand(WrapUniverse *in, Universe *out, int x, int y, int generation)
     int below_y = y + 1;
     unsigned char cell_below = universe_wrap_get(in, out, x, below_y);
 
+    // Fall through EMPTY space
     if (cell_below == P_EMPTY)
     {
-        universe_set(out, x, below_y, P_SAND); // Swap below cell with sand
-        universe_set(out, x, y, P_EMPTY);      // Insert in cell below.
-        // It is possible to avoid this if already updated
-        update_cellsclock(in, x, below_y); // Mark as updated also the below cell
+        universe_set(out, x, below_y, P_SAND);
+        universe_set(out, x, y, P_EMPTY);
+        update_cellsclock(in, x, below_y);
         return;
     }
 
-    // Cannot move down; try diagonals
-    if (cell_below == P_SAND || cell_below == P_WALL)
+    // Verify diagonals when blocked by SAND or WALL
+    int dir = (generation % 2 == 0) ? 1 : -1;
+    int diag1_x = x - dir;
+    int diag2_x = x + dir;
+
+    // This means that there is something else below (SAND or WALL or WATER)
+    // Check first diagonal
+    if (universe_wrap_get(in, out, diag1_x, below_y) == P_EMPTY)
     {
-        int diag_x = (generation % 2 == 0) ? (x - 1) : (x + 1); // Even: Left, Odd: Right
-        // Check if the specific diagonal is EMPTY (Strict rule: do not swap with water on diagonal)
-        if (universe_wrap_get(in, out, diag_x, below_y) == P_EMPTY)
-        {
-            universe_set(out, diag_x, below_y, P_SAND); // Move sand to diagonal
-            universe_set(out, x, y, P_EMPTY);           // Leave current cell empty
-            update_cellsclock(in, diag_x, below_y);     // Mark as updated also the other cell
-            return;
-        }
+        universe_set(out, diag1_x, below_y, P_SAND);
+        universe_set(out, x, y, P_EMPTY);
+        update_cellsclock(in, diag1_x, below_y);
+        return;
+    }
+    // Check second diagonal
+    if (universe_wrap_get(in, out, diag2_x, below_y) == P_EMPTY)
+    {
+        universe_set(out, diag2_x, below_y, P_SAND);
+        universe_set(out, x, y, P_EMPTY);
+        update_cellsclock(in, diag2_x, below_y);
+        return;
     }
 
-    // Check if can swap with water below
+    // Only if the cell below is WATER, we have to manage the swap (density)
     if (cell_below == P_WATER)
     {
-        universe_set(out, x, below_y, P_SAND); // Swap below cell with sand
-        universe_set(out, x, y, P_WATER);      // Insert in cell below.
-        // It is possible to avoid this if already updated
-        update_cellsclock(in, x, below_y); // Mark as updated also the below cell
+        // To simulate viscosity, we make SAND stay still in half of the cases
+        // Unless we will have a bad tendency to have WATER going up too fast
+        if ((x + y + generation) % 2 != 0)
+        {
+            universe_set(out, x, y, P_SAND); // Stay in place
+            return;
+        }
+
+        // Else swap positions
+        universe_set(out, x, below_y, P_SAND);
+        universe_set(out, x, y, P_WATER); // L'acqua sale
+        update_cellsclock(in, x, below_y);
         return;
     }
 
-    // Stay in place
-    universe_set(out, x, y, P_SAND); // Stay in place
+    // If we are here, it means that SAND couldn't go down or diagonally
+    universe_set(out, x, y, P_SAND);
 }
-
 /**
  * @brief Handles the behavior of a WATER particle.
  * @param u Pointer to the Universe (current state being modified).
