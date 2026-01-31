@@ -215,7 +215,7 @@ static inline void update_empty(WrapUniverse *in, Universe *out, int x, int y, i
     universe_set(out, x, y, P_EMPTY);
 }
 
-Universe *next(Universe *u, Universe* out, int generation)
+void next(Universe *u, Universe* out, int generation)
 {
     int is_odd = generation % 2 != 0;
     int step_x = 1 - (is_odd * 2);

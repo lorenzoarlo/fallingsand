@@ -6,16 +6,20 @@ LOGIC ?= src/logic.c
 default:
 	cmake -B build -DSIMULATION_LOGIC="${LOGIC}"
 	cmake --build build
-# Run simulation and generate video using default logic with 1500 frames and scale 4 (useful for high-res videos)
-default_video: default
+video: default
 	mkdir -p output
 	rm -f output/images/sample-${SAMPLE}-*.png
 	mkdir -p output/images/sample-${SAMPLE}
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -oi output/images/sample-${SAMPLE}/ -s 4 -l output/logs/sample-${SAMPLE}-performance.log
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
 	mkdir -p output/videos
 	rm -f output/videos/animation-${SAMPLE}.mp4
 	ffmpeg -framerate 60 -i output/images/sample-${SAMPLE}/%04d.png -c:v libx264 -pix_fmt yuv420p output/videos/animation-${SAMPLE}.mp4
+# Run simulation and generate video using default logic with 1500 frames and scale 4 (useful for high-res videos)
+default_video: SCALE = 4
+default_video: FRAMES = 1500
+default_video: video
+
 default_test: default
 	mkdir -p output
 	mkdir -p output/logs/
