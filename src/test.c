@@ -45,8 +45,8 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
         return PARAMETERS_MISMATCH_ERROR;
     }
 
-    // Allocate memory for the differences sequence
-    Universe **diffs = (Universe **)malloc(sizeof(Universe *) * f_a);
+    // Allocate memory for the differences sequence;
+    Universe **diffs = (Universe **)calloc(f_a, sizeof(Universe *));
     if (!diffs)
     {
         fclose(fa);
@@ -81,11 +81,16 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
     for (int i = 0; i < f_a; i++)
     {
         diffs[i] = universe_create(w_a, h_a);
+        if (!diffs[i]) {
+            perror("test_sand -> Memory allocation failed for difference universe");
+            success = 0;
+            break;
+        }
 
         // Reading frames
         if (io_read_frame(fa, temp_a) != 0 || io_read_frame(fb, temp_b) != 0)
         {
-            perror("test_file -> Error reading frames from test files");
+            perror("test_sand -> Error reading frames from test files");
             success = 0;
             break;
         }
@@ -111,6 +116,7 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
 
     if (success)
     {
+        *out_frames = f_a; 
         *out_diff_sequence = diffs;
         return 0;
     }

@@ -84,6 +84,9 @@ Universe *setup(int width, int height, FILE *input_file)
     return current_universe;
 }
 
+#define GREEN     "\033[0;32m"
+#define RESET     "\033[0m"
+
 /**
  * @brief Run the testing verification against a reference .sand file.
  * @param config CLIConfig structure with test parameters.
@@ -92,7 +95,6 @@ void testing(CLIConfig config)
 {
     printf("Running verification against %s\n", config.test_filename);
 
-    Universe ***diff_sequence = NULL; // Will point to array of Universe pointers
     Universe **diffs_array = NULL;    // Temporary array to hold diffs
     int diff_frames = 0;
 
@@ -101,7 +103,7 @@ void testing(CLIConfig config)
 
     if (result == 0)
     {
-        printf("Test SUCCESS: The output matches the test file.\n");
+        printf(GREEN "Test SUCCESS: The output matches the test file.\n" RESET);
     }
     else
     {
@@ -268,6 +270,7 @@ int main(int argc, char *argv[])
     }
 
     uint64_t start, end;
+    Universe *next_universe;
     for (int i = 0; i < config.frames; i++)
     {
         // Avoid useless line printing, do it in the same line 

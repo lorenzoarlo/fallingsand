@@ -22,7 +22,7 @@ typedef struct WrapUniverse
  * @param x The x-coordinate of the cell.
  * @param y The y-coordinate of the cell.
  */
-int already_updated(WrapUniverse *in, int x, int y)
+static inline int already_updated(WrapUniverse *in, int x, int y)
 {
     if (universe_out_of_bounds(in->current, x, y))
     {
@@ -37,7 +37,7 @@ int already_updated(WrapUniverse *in, int x, int y)
  * @param x The x-coordinate of the cell.
  * @param y The y-coordinate of the cell.
  */
-void update_cellsclock(WrapUniverse *in, int x, int y)
+static inline void update_cellsclock(WrapUniverse *in, int x, int y)
 {
     if (universe_out_of_bounds(in->current, x, y))
     {
@@ -54,7 +54,7 @@ void update_cellsclock(WrapUniverse *in, int x, int y)
  * @param y The y-coordinate.
  * @return The particle type at the specified coordinates.
  */
-unsigned char universe_wrap_get(WrapUniverse *in, Universe *out, int x, int y)
+static inline unsigned char universe_wrap_get(WrapUniverse *in, Universe *out, int x, int y)
 {
     return already_updated(in, x, y) ? universe_get(out, x, y) : universe_get(in->current, x, y);
 }
@@ -66,7 +66,7 @@ unsigned char universe_wrap_get(WrapUniverse *in, Universe *out, int x, int y)
  * @param y Current y-coordinate of the particle.
  * @param generation Current generation index.
  */
-void update_sand(WrapUniverse *in, Universe *out, int x, int y, int generation)
+static inline void update_sand(WrapUniverse *in, Universe *out, int x, int y, int generation)
 {
     int below_y = y + 1;
     unsigned char cell_below = universe_wrap_get(in, out, x, below_y);
@@ -203,13 +203,13 @@ void update_water(WrapUniverse *in, Universe *out, int x, int y, int generation)
     universe_set(out, x, y, P_WATER); // Stay in place
 }
 
-void update_wall(WrapUniverse *in, Universe *out, int x, int y, int generation)
+static inline void update_wall(WrapUniverse *in, Universe *out, int x, int y, int generation)
 {
     // WALL particles do not move; they remain static.
     universe_set(out, x, y, P_WALL);
 }
 
-void update_empty(WrapUniverse *in, Universe *out, int x, int y, int generation)
+static inline void update_empty(WrapUniverse *in, Universe *out, int x, int y, int generation)
 {
     // EMPTY cells remain empty.
     universe_set(out, x, y, P_EMPTY);

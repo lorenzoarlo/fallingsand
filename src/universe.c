@@ -54,36 +54,8 @@ void universe_destroy(Universe *u)
     }
 }
 
-int universe_out_of_bounds(Universe *universe, int x, int y)
-{
-    return (x < 0 || x >= universe->width || y < 0 || y >= universe->height);
-}
 
-unsigned char universe_get(Universe *u, int x, int y)
-{
-    // If outside bounds, return P_WALL
-    if (universe_out_of_bounds(u, x, y))
-    {
-        /**
-         * Out of bounds reads return P_WALL
-         */
-        return P_WALL;
-    }
 
-    return u->cells[UINDEX(x, y, u->width)];
-}
 
-void universe_set(Universe *u, int x, int y, unsigned char value)
-{
-    // If outside bounds, do nothing
-    if (universe_out_of_bounds(u, x, y))
-    {
-        /**
-         * Out of bounds writes are ignored
-         */
-        return;
-    }
 
-    u->cells[UINDEX(x, y, u->width)] = value;
-}
 

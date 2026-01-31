@@ -50,8 +50,10 @@ void universe_destroy(Universe *universe);
  * @param y The y-coordinate.
  * @return 1 if out of bounds, 0 otherwise.
  */
-int universe_out_of_bounds(Universe *universe, int x, int y);
-
+static inline int universe_out_of_bounds(Universe *universe, int x, int y)
+{
+    return (x < 0 || x >= universe->width || y < 0 || y >= universe->height);
+}
 /**
  * @brief Gets the particle type at the specified coordinates in the Universe.
  *
@@ -60,7 +62,19 @@ int universe_out_of_bounds(Universe *universe, int x, int y);
  * @param y The y-coordinate.
  * @return The particle type at the specified coordinates.
  */
-unsigned char universe_get(Universe *universe, int x, int y);
+static inline unsigned char universe_get(Universe *u, int x, int y)
+{
+    // If outside bounds, return P_WALL
+    if (universe_out_of_bounds(u, x, y))
+    {
+        /**
+         * Out of bounds reads return P_WALL
+         */
+        return P_WALL;
+    }
+
+    return u->cells[UINDEX(x, y, u->width)];
+}
 
 /**
  * @brief Set the specified coordinates in the Universe as a cell.
@@ -71,6 +85,17 @@ unsigned char universe_get(Universe *universe, int x, int y);
  * @param value The particle type to set at the specified coordinates.
  * @return The particle type at the specified coordinates.
  */
-void universe_set(Universe *universe, int x, int y, unsigned char value);
+static inline void universe_set(Universe *u, int x, int y, unsigned char value)
+{
+    // If outside bounds, do nothing
+    if (universe_out_of_bounds(u, x, y))
+    {
+        /**
+         * Out of bounds writes are ignored
+         */
+        return;
+    }
 
+    u->cells[UINDEX(x, y, u->width)] = value;
+}
 #endif
