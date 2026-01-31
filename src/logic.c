@@ -215,28 +215,20 @@ static inline void update_empty(WrapUniverse *in, Universe *out, int x, int y, i
     universe_set(out, x, y, P_EMPTY);
 }
 
-Universe *next(Universe *u, int generation)
+Universe *next(Universe *u, Universe* out, int generation)
 {
-    // Create a new universe to hold the next state.
-    Universe *new_u = universe_create(u->width, u->height);
-    if (!new_u)
-    {
-        perror("next -> Error creating new universe for next generation");
-        return NULL;
-    }
-
     int is_odd = generation % 2 != 0;
     int step_x = 1 - (is_odd * 2);
-    int start_x = is_odd * (new_u->width - 1);
+    int start_x = is_odd * (u->width - 1);
 
     // Create clock buffer
     unsigned char *clock_buffer = (unsigned char *)calloc(u->width * u->height, sizeof(unsigned char));
     WrapUniverse wrap = {u, clock_buffer};
 
     // Iteration Order: Top to Bottom
-    for (int y = 0; y < new_u->height; y++)
+    for (int y = 0; y < u->height; y++)
     {
-        for (int x = 0; x < new_u->width; x++)
+        for (int x = 0; x < u->width; x++)
         {
             int real_x = start_x + (x * step_x);
             // Update only if not already updated
@@ -252,22 +244,22 @@ Universe *next(Universe *u, int generation)
             {
             case P_SAND:
             {
-                update_sand(&wrap, new_u, real_x, y, generation);
+                update_sand(&wrap, out, real_x, y, generation);
                 break;
             }
             case P_WATER:
             {
-                update_water(&wrap, new_u, real_x, y, generation);
+                update_water(&wrap, out, real_x, y, generation);
                 break;
             }
             case P_WALL:
             {
-                update_wall(&wrap, new_u, real_x, y, generation);
+                update_wall(&wrap, out, real_x, y, generation);
                 break;
             }
             case P_EMPTY:
             {
-                update_empty(&wrap, new_u, real_x, y, generation);
+                update_empty(&wrap, out, real_x, y, generation);
                 break;
             }
             default:
@@ -277,5 +269,4 @@ Universe *next(Universe *u, int generation)
     }
 
     free(clock_buffer);
-    return new_u;
 }

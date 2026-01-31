@@ -85,7 +85,7 @@ int parse_arguments(int argc, char *argv[], CLIConfig *config)
                 fprintf(stderr, "Error: Option -l requires a scale factor.\n");
                 return CLI_FAILURE_PARAMETER_MISSING;
             }
-            config->performance_filemane = argv[++i];
+            config->performance_filename = argv[++i];
         }
         else
         {

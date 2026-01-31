@@ -49,7 +49,7 @@ Any coordinate outside the valid matrix dimensions is considered a `WALL`.
 The performance and logic of the following function will be analyzed:
 
 ```c
-Universe* next(Universe* universe, int generation) {
+next(Universe* universe, Universe* out, int generation) {
     // Implementation logic here
 }
 ```

@@ -21,7 +21,7 @@ typedef struct
     char *test_filename;   // Path for test file (optional)
     char *output_folder;   // Folder to save output images (optional)
     int scale;             // Scale factor for exported images (optional)
-    char *performance_filemane; // Path for performance log file (optional)
+    char *performance_filename; // Path for performance log file (optional)
 } CLIConfig;
 
 /**

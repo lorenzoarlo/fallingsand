@@ -84,8 +84,8 @@ Universe *setup(int width, int height, FILE *input_file)
     return current_universe;
 }
 
-#define GREEN     "\033[0;32m"
-#define RESET     "\033[0m"
+#define GREEN "\033[0;32m"
+#define RESET "\033[0m"
 /**
  * @brief Run the testing verification against a reference .sand file.
  * @param config CLIConfig structure with test parameters.
@@ -94,7 +94,7 @@ void testing(CLIConfig config)
 {
     printf("Running verification against %s\n", config.test_filename);
 
-    Universe **diffs_array = NULL;    // Temporary array to hold diffs
+    Universe **diffs_array = NULL; // Temporary array to hold diffs
     int diff_frames = 0;
 
     // Pass address of diffs_array pointer
@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
     }
     printf("Created output file: %s\n", config.output_filename);
 
-    FILE *performance_file = fopen(config.performance_filemane, "w");
+    FILE *performance_file = fopen(config.performance_filename, "w");
     if (!performance_file)
     {
         perror("main -> Error creating performance log file");
@@ -269,17 +269,19 @@ int main(int argc, char *argv[])
     }
 
     uint64_t start, end;
-    Universe *next_universe;
+    Universe *next_universe = universe_create(width, height);
+    Universe *swapping_temp;
+
     for (int i = 0; i < config.frames; i++)
     {
-        // Avoid useless line printing, do it in the same line 
+        // Avoid useless line printing, do it in the same line
         printf("Simulating frame %d / %d\r", i + 1, config.frames);
         fflush(stdout);
 
         // Calculate next generation
         start = measure_start();
-        Universe *next_universe = next(current_universe, i);
-        end = measure_start();
+        next(current_universe, next_universe, i);
+        end = measure_end();
         append_performance(performance_file, start, end, i + 1);
         if (!next_universe)
         {
@@ -290,15 +292,16 @@ int main(int argc, char *argv[])
         // Append to .sand file
         io_append_frame(output_file, next_universe);
 
-        // Clean up old state and move to new state
-        universe_destroy(current_universe);
+        swapping_temp = current_universe;
         current_universe = next_universe;
+        next_universe = swapping_temp;
     }
     printf("Simulation completed. Data saved.\n");
     fclose(performance_file);
 
     // Clean up final state and close output file
     universe_destroy(current_universe);
+    universe_destroy(next_universe);
     fclose(output_file);
 
     // Now that the .sand file is complete, we generate images in parallel

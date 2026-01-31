@@ -218,32 +218,23 @@ void update_water(WrapUniverse *in, Universe *out, int x, int y, int generation)
 }
 
 
-
-Universe *next(Universe *u, int generation)
+void next(Universe *u, Universe *out, int generation)
 {
-    // Create a new universe to hold the next state.
-    Universe *new_u = universe_create(u->width, u->height);
-    if (!new_u)
-    {
-        perror("next -> Error creating new universe for next generation");
-        return NULL;
-    }
-
     // Copy the universe to initialize (all empty cells and walls will remain the same)
-    memcpy(new_u->cells, u->cells, u->width * u->height * sizeof(unsigned char));
+    memcpy(out->cells, u->cells, u->width * u->height * sizeof(unsigned char));
 
     int is_odd = generation % 2 != 0;
     int step_x = 1 - (is_odd * 2);
-    int start_x = is_odd * (new_u->width - 1);
+    int start_x = is_odd * (u->width - 1);
 
     // Create clock buffer
     unsigned char *clock_buffer = (unsigned char *)calloc(u->width * u->height, sizeof(unsigned char));
     WrapUniverse wrap = {u, clock_buffer};
 
     // Iteration Order: Top to Bottom
-    for (int y = 0; y < new_u->height; y++)
+    for (int y = 0; y < u->height; y++)
     {
-        for (int x = 0; x < new_u->width; x++)
+        for (int x = 0; x < u->width; x++)
         {
             int real_x = start_x + (x * step_x);
             // Update only if not already updated
@@ -259,12 +250,12 @@ Universe *next(Universe *u, int generation)
             {
             case P_SAND:
             {
-                update_sand(&wrap, new_u, real_x, y, generation);
+                update_sand(&wrap, out, real_x, y, generation);
                 break;
             }
             case P_WATER:
             {
-                update_water(&wrap, new_u, real_x, y, generation);
+                update_water(&wrap, out, real_x, y, generation);
                 break;
             }
             case P_WALL:  // NOTES: Walls are already set in the memcpy
@@ -280,5 +271,4 @@ Universe *next(Universe *u, int generation)
     }
 
     free(clock_buffer);
-    return new_u;
 }
