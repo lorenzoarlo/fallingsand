@@ -1,6 +1,6 @@
 # Default number of frames to simulate
 FRAMES ?= 100
-SCALE ?= 3
+SCALE ?= 1
 SAMPLE ?= 1
 
 default:

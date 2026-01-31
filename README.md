@@ -9,6 +9,7 @@
         - [`SAND`](#sand)
         - [`WATER`](#water)
   - [Change the simulation logic](#change-the-simulation-logic)
+  - [Make file commands](#make-file-commands)
   - [Create a video](#create-a-video)
 
 
@@ -174,8 +175,29 @@ make default_video
 ### Freeze logic implementation
 
 ```bash
-cmake -DSIMULATION_LOGIC="src/utility/freeze.c" . && make
+cmake -DSIMULATION_LOGIC="src/utility/freeze.c" . # ...
 ```
+
+## Make file commands
+To help you with building and running the simulation, the following make commands are available:
+
+```bash
+make default # Build with default logic implementation
+```
+To run it with the default logic implementation and generate a video:
+
+```bash
+make default_video
+```
+Eventually, you can also add some parameters to the command:
+
+```bash
+make default_video SAMPLE=sample FRAMES=number_of_frames SCALE=factor
+```
+where:
+- `sample` is which original state to use (default: `1`, corresponds to `assets/sample-1.sand`);
+- `number_of_frames` is how many frames to simulate (default: `100`);
+- `factor` is the scaling factor for the output images (default: `1`).  
 
 ## Create a video 
 It is possible to create a video with all the frames using ffmpeg
