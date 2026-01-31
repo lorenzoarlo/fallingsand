@@ -10,7 +10,8 @@ default_video: default
 	mkdir -p output
 	rm -f output/images/sample-${SAMPLE}-*.png
 	mkdir -p output/images/sample-${SAMPLE}
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE}
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
 	mkdir -p output/videos
 	rm -f output/videos/animation-${SAMPLE}.mp4
 	ffmpeg -framerate 60 -i output/images/sample-${SAMPLE}/%04d.png -c:v libx264 -pix_fmt yuv420p output/videos/animation-${SAMPLE}.mp4
@@ -22,3 +23,4 @@ clean_output:
 	rm -rf output/images/**/*.png
 	rm -rf output/images/**/*.ppm 
 	rm -rf output/videos/*.mp4
+	rm -rf output/logs/*.log

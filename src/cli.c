@@ -11,6 +11,7 @@ void cli_help(const char *prog_name)
     printf("\t -s <scale>    : (Optional) Scale factor for exported images (default: 1)\n");
     printf("\t-oi <folder>    : (Optional) Folder to save output images for each frame\n");
     printf("\t-t <file>      : (Optional) Path for test file\n");
+    printf("\t-l <logfile>  : (Optional) Path for performance log file (default: performance.log)\n");
 }
 
 int parse_arguments(int argc, char *argv[], CLIConfig *config)
@@ -76,6 +77,15 @@ int parse_arguments(int argc, char *argv[], CLIConfig *config)
                 return CLI_FAILURE_PARAMETER_MISSING;
             }
             config->scale = atoi(argv[++i]);
+        }
+        else if (strcmp(argv[i], "-l") == 0)
+        {
+            if (i + 1 >= argc)
+            {
+                fprintf(stderr, "Error: Option -l requires a scale factor.\n");
+                return CLI_FAILURE_PARAMETER_MISSING;
+            }
+            config->performance_filemane = argv[++i];
         }
         else
         {

@@ -15,6 +15,7 @@
 #include "graphics.h"
 #include "test.h"
 #include "simulation.h"
+#include "performance.h"
 
 #define SUCCESS 0
 #define GENERIC_ERROR 255
@@ -257,16 +258,27 @@ int main(int argc, char *argv[])
     }
     printf("Created output file: %s\n", config.output_filename);
 
-    // --- PHASE 1: SIMULATION & FILE WRITING ---
-    // Note: Image generation removed from this loop to allow parallel processing later
+    FILE *performance_file = fopen(config.performance_filemane, "w");
+    if (!performance_file)
+    {
+        perror("main -> Error creating performance log file");
+        universe_destroy(current_universe);
+        fclose(output_file);
+        exit(GENERIC_ERROR);
+    }
+
+    uint64_t start, end;
     for (int i = 0; i < config.frames; i++)
     {
+        // Avoid useless line printing, do it in the same line 
         printf("Simulating frame %d / %d\r", i + 1, config.frames);
-        fflush(stdout); // Update progress on same line
+        fflush(stdout);
 
         // Calculate next generation
+        start = measure_start();
         Universe *next_universe = next(current_universe, i);
-
+        end = measure_start();
+        append_performance(performance_file, start, end, i + 1);
         if (!next_universe)
         {
             fprintf(stderr, "\nError at frame %d\n", i);
@@ -280,7 +292,8 @@ int main(int argc, char *argv[])
         universe_destroy(current_universe);
         current_universe = next_universe;
     }
-    printf("\nSimulation completed. Data saved.\n");
+    printf("Simulation completed. Data saved.\n");
+    fclose(performance_file);
 
     // Clean up final state and close output file
     universe_destroy(current_universe);
