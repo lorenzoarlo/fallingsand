@@ -199,6 +199,25 @@ where:
 - `number_of_frames` is how many frames to simulate (default: `100`);
 - `factor` is the scaling factor for the output images (default: `1`).  
 
+## Makefile commands
+To help you with building and running the simulation, the following make commands are available:
+
+```bash
+make default_video # Build and run with default logic implementation and generate a video
+```
+
+```bash
+make default_test # Build and run with default logic implementation and test it against reference
+```
+
+```bash
+make less_effort_test # Build and run with less-effort logic implementation and test it against reference
+```
+
+About references, by default it expected files to be in `assets/references/` folder and logs will be saved in `output/logs/` folder.
+About names, they are by default like `output-sample-{SAMPLE}.sand`.
+
+
 ## Create a video 
 It is possible to create a video with all the frames using ffmpeg
 ```bash

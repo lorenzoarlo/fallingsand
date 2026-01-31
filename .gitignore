@@ -43,3 +43,6 @@ CMakeFiles/
 
 output/*
 !output/.gitkeep
+
+assets/references/
+assets/videos/
