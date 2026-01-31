@@ -6,7 +6,7 @@
  * - it avoids useless checks of out of bound (everywhere except when is needed to understand if it is a wall)
  * - it will skip the empty cells update (by default they are empty)
  */
-#include "simulation.h"
+#include "../simulation.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h> // For perror

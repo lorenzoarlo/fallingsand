@@ -86,7 +86,6 @@ Universe *setup(int width, int height, FILE *input_file)
 
 #define GREEN     "\033[0;32m"
 #define RESET     "\033[0m"
-
 /**
  * @brief Run the testing verification against a reference .sand file.
  * @param config CLIConfig structure with test parameters.
