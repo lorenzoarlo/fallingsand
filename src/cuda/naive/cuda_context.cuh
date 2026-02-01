@@ -2,7 +2,7 @@
 #define CUDA_SIMULATION_CUH
 
 #include <stdio.h>
-#include "../universe.h"
+#include "../../universe.h"
 
 /**
  * Maximum proposals a single cell can generate.
