@@ -9,6 +9,7 @@ CMakeFiles/
 CMakeScripts/
 cmake_install.cmake
 install_manifest.txt
+CMakePresets.json
 
 
 *.o
