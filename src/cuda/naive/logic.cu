@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include "cuda_context.cuh"
-#include "check.cuh"
+#include "../check.cuh"
 #include "kernels.cuh"
 
-void next_cuda(Universe* u, Universe* out, int generation, CudaContext* ctx){
+void next_cuda_naive(Universe* u, Universe* out, int generation, CudaContext* ctx){
     int total_cells = u->width * u->height;
     dim3 block(BLOCK_SIZE, BLOCK_SIZE);
     dim3 grid((u->width + block.x - 1) / block.x,
@@ -47,7 +47,7 @@ void next(Universe* u_in, Universe* u_out, int generation){
     cuda_init_context(ctx);
     cuda_upload_grid(ctx, u_in);
     // Compute frame
-    next_cuda(u_in, u_out, generation, ctx);
+    next_cuda_naive(u_in, u_out, generation, ctx);
     // Download result
     cuda_download_grid(ctx, u_out);
 }

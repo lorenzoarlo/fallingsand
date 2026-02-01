@@ -1,5 +1,5 @@
 #include "cuda_context.cuh"
-#include "check.cuh"
+#include "../check.cuh"
 
 CudaContext* cuda_context_create(int width, int height){
     CudaContext* ctx = (CudaContext*) malloc(sizeof(CudaContext));
