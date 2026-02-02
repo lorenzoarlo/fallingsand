@@ -3,6 +3,12 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#define SAND_NOISE_CHANCE 0.4f
+#define WATER_FALL_DOWN_CHANCE 0.9f
+#define WATER_FALL_DENSITY_CHANCE 1.0f
+#define WATER_MOVE_DIAGONAL_CHANCE 0.5f
+#define WATER_MOVE_HORIZONTAL_CHANCE 0.8f
+
 // Pseudo random function based on hash but deterministic
 static inline float random_hash(int x, int y, int frame, int salt)
 {
@@ -76,7 +82,7 @@ void next(Universe *u, Universe *out, int generation)
                                    *topright == P_SAND && *topleft < P_SAND;
 
             int sand_is_falling = *bottomleft < P_SAND && *bottomright < P_SAND;
-            if (topsand_can_move && sand_is_falling && random_hash(x, y, generation, 0) < 0.4f)
+            if (topsand_can_move && sand_is_falling && random_hash(x, y, generation, 0) < SAND_NOISE_CHANCE)
             {
                 swap(topleft, topright);
                 topleft_moved = 1;
@@ -91,7 +97,7 @@ void next(Universe *u, Universe *out, int generation)
                 // Can fall down?
                 if (*bottomleft < P_SAND)
                 {
-                    if (random_hash(x, y, generation, 1) < 0.9f)
+                    if (random_hash(x, y, generation, 1) < WATER_FALL_DOWN_CHANCE)
                     {
                         swap(topleft, bottomleft);
                     }
@@ -108,7 +114,7 @@ void next(Universe *u, Universe *out, int generation)
                 // Can fall down
                 if (*bottomright < P_SAND)
                 {
-                    if (random_hash(x, y, generation, 1) < 0.9f)
+                    if (random_hash(x, y, generation, 1) < WATER_FALL_DOWN_CHANCE)
                     {
                         swap(topright, bottomright);
                     }
@@ -127,13 +133,13 @@ void next(Universe *u, Universe *out, int generation)
             if (*topleft == P_WATER)
             {
                 // Is the cell below lower density?
-                if (*bottomleft < *topleft && random_hash(x, y, generation, 2) < 0.95f)
+                if (*bottomleft < *topleft && random_hash(x, y, generation, 2) < WATER_FALL_DENSITY_CHANCE)
                 {
                     swap(topleft, bottomleft);
                     drop_left = 1;
                 }
                 // Can move diagonally?
-                else if (*topright < *topleft && *bottomright < *topleft && random_hash(x, y, generation, 3) < 0.3f)
+                else if (*topright < *topleft && *bottomright < *topleft && random_hash(x, y, generation, 3) < WATER_MOVE_DIAGONAL_CHANCE)
                 {
                     swap(topleft, bottomright);
                     drop_left = 1;
@@ -144,12 +150,12 @@ void next(Universe *u, Universe *out, int generation)
             if (*topright == P_WATER)
             {
                 // Is the cell below lower density?
-                if (*bottomright < *topright && random_hash(x, y, generation, 2) < 0.95f)
+                if (*bottomright < *topright && random_hash(x, y, generation, 2) < WATER_FALL_DENSITY_CHANCE)
                 {
                     swap(topright, bottomright);
                     drop_right = 1;
                 } // Can move diagonally?
-                else if (*topleft < *topright && *bottomleft < *topright && random_hash(x, y, generation, 3) < 0.3f)
+                else if (*topleft < *topright && *bottomleft < *topright && random_hash(x, y, generation, 3) < WATER_MOVE_DIAGONAL_CHANCE)
                 {
                     swap(topright, bottomleft);
                     drop_right = 1;
@@ -163,12 +169,12 @@ void next(Universe *u, Universe *out, int generation)
                                                  *topleft < P_WATER && *topright == P_WATER);
                 int below_solid = *bottomleft >= P_WATER && *bottomright >= P_WATER;
 
-                if (top_can_move_horizontally && (below_solid || random_hash(x, y, generation, 4) < 0.8f))
+                if (top_can_move_horizontally && (below_solid || random_hash(x, y, generation, 4) < WATER_MOVE_HORIZONTAL_CHANCE))
                 {
                     swap(topleft, topright);
                 }
             }
-            
+
             int bottom_can_move_horizontally = (*bottomleft == P_WATER && *bottomright < P_WATER ||
                                                 *bottomleft < P_WATER && *bottomright == P_WATER);
             // Look if there is solid floor below
@@ -176,7 +182,7 @@ void next(Universe *u, Universe *out, int generation)
 
             // Swap of below cells if possible
             // Use different random channel to avoid correlation with top movement
-            if (bottom_can_move_horizontally && (floor_is_solid || random_hash(x, y, generation, 5) < 0.8f))
+            if (bottom_can_move_horizontally && (floor_is_solid || random_hash(x, y, generation, 5) < WATER_MOVE_HORIZONTAL_CHANCE))
             {
                 swap(bottomleft, bottomright);
             }
