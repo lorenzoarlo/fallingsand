@@ -19,10 +19,14 @@ list(REMOVE_ITEM CORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/logic.c")
 if(ENABLE_CUDA)
     message(STATUS "CUDA ENABLED")
     enable_language(CUDA)
-    file(GLOB CUDA_SOURCES "src/cuda/*.cu")
+    file(GLOB CUDA_SOURCES "src/cuda/naive/*.cu")
+    list(REMOVE_ITEM CUDA_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/naive/device_functions.cu")
     add_executable(fallingsand
         ${CORE_SOURCES}
+        ${CUDA_SOURCES}
     )
+    set_target_properties(fallingsand PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
+    target_compile_features(fallingsand PRIVATE cuda_std_11)
 else()
     if(NOT DEFINED SIMULATION_LOGIC)
         set(SIMULATION_LOGIC "src/logic.c")

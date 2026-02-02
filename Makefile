@@ -24,6 +24,15 @@ default_test: default
 	mkdir -p output
 	mkdir -p output/logs/
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log
+
+default_cuda: 
+	cmake -B build -DENABLE_CUDA=ON -DCMAKE_CUDA_COMPILER=/usr/bin/nvcc
+	cmake --build build
+default_test_cuda: default_cuda
+	mkdir -p output
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log
+
 less_effort_test: LOGIC = src/simd/less-effort-logic.c
 less_effort_test: default
 	mkdir -p output

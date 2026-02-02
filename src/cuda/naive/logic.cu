@@ -2,6 +2,7 @@
 #include "cuda_context.cuh"
 #include "../check.cuh"
 #include "kernels.cuh"
+#include "../../simulation.h"
 
 void next_cuda_naive(Universe* u, Universe* out, int generation, CudaContext* ctx){
     int total_cells = u->width * u->height;
@@ -50,4 +51,5 @@ void next(Universe* u_in, Universe* u_out, int generation){
     next_cuda_naive(u_in, u_out, generation, ctx);
     // Download result
     cuda_download_grid(ctx, u_out);
+    cuda_context_destroy(ctx);
 }

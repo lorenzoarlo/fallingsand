@@ -2,7 +2,6 @@
 #define CUDA_KERNELS
 
 #include "cuda_context.cuh"
-#include "device_functions.cuh"
 
 __global__ void generate_proposals(unsigned char* grid_in, Proposal* proposals, unsigned char* prop_counts, int width, int height, int generation);
 __global__ void collect_proposals(Proposal* proposals, unsigned char* prop_counts, CellState* cell_states, int width, int height);
