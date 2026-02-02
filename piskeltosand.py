@@ -7,9 +7,9 @@ import struct
 from PIL import Image
 
 P_EMPTY = 0
-P_WALL = 1
+P_WATER = 1
 P_SAND = 2
-P_WATER = 3
+P_WALL = 3
 
 # Here we should define the mapping from RGBA colors to sand pixel types
 COLOR_MAP = {

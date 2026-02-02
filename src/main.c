@@ -117,7 +117,7 @@ void testing(CLIConfig config)
                 if (diffs_array[k]) // If there is a diff universe (some implementation might leave it NULL if equal)
                 {
                     char diff_path[512];
-                    snprintf(diff_path, sizeof(diff_path), "%s/testdiff_%04d.ppm", config.output_folder, k + 1);
+                    snprintf(diff_path, sizeof(diff_path), "%s/testdiff_%04d.png", config.output_folder, k + 1);
                     universe_export_image(diffs_array[k], diff_path, config.scale);
                 }
             }
@@ -187,8 +187,6 @@ void produce_images_parallel(CLIConfig config, int width, int height, int total_
 
     if (child_id != -1)
     {
-        // === CHILD PROCESS LOGIC ===
-
         // Open the generated .sand file for reading
         // We use dummy variables for w, h, f because we already know them
         int w, h, f;
