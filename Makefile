@@ -33,6 +33,12 @@ default_test_cuda: default_cuda
 	mkdir -p output/logs/
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log
 
+default_testdiff_cuda: default_cuda
+	mkdir -p output
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -s ${SCALE} -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log -oi output/images/sample-${SAMPLE}/
+
+
 video_cuda: default_cuda
 	mkdir -p output
 	rm -f output/images/sample-${SAMPLE}-*.png
@@ -42,7 +48,7 @@ video_cuda: default_cuda
 	mkdir -p output/videos
 	rm -f output/videos/animation-${SAMPLE}.mp4
 	ffmpeg -framerate 60 -i output/images/sample-${SAMPLE}/%04d.png -c:v libx264 -pix_fmt yuv420p output/videos/animation-${SAMPLE}.mp4
-	
+
 less_effort_test: LOGIC = src/simd/less-effort-logic.c
 less_effort_test: default
 	mkdir -p output

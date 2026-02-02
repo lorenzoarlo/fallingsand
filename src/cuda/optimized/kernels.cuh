@@ -8,6 +8,6 @@
 
 #define BLOCK_SIZE 16
 
-__global__ void sand_step_kernel(const unsigned char* in, unsigned char* out, int w, int h, int gen);
+__global__ void sand_step_kernel(const unsigned char* in, unsigned char* out, int w, int h, int gen, unsigned char* clock);
 
 #endif
