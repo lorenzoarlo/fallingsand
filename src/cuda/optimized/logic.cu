@@ -18,6 +18,9 @@ void next(Universe* u_in, Universe* u_out, int generation){
     sand_step_kernel<<<grid, block>>>(d_in, d_out, u_in->width, u_in->height, generation, d_clock);
     CHECK(cudaGetLastError());
     CHECK(cudaDeviceSynchronize());
+    sand_step_kernel<<<grid, block>>>(d_in, d_out, u_in->width, u_in->height, generation+1, d_clock);
+    CHECK(cudaGetLastError());
+    CHECK(cudaDeviceSynchronize());
     CHECK(cudaMemcpy(u_out->cells, d_out, total_size, cudaMemcpyDeviceToHost));
     cudaFree(d_in);
     cudaFree(d_out);

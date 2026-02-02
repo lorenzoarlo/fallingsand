@@ -1,14 +1,9 @@
 #include "kernels.cuh"
 
-// --- Helper Functions ---
-
-// Bounds check: Prevents invalid memory access which crashes the GPU.
 __device__ int device_out_of_bounds(int x, int y, int width, int height){
     return (x < 0 || x >= width || y < 0 || y >= height);
 }
 
-// Priority Calculation: Deterministic tie-breaker for particles competing for the same spot.
-// The (generation % 2) check creates a checkerboard pattern to prevent directional bias/drifting.
 __device__ int calculate_priority(int x, int y, int generation, int width){
     if(generation % 2 == 0){
         return y * width + x;
@@ -17,7 +12,6 @@ __device__ int calculate_priority(int x, int y, int generation, int width){
     }
 }
 
-// Safe Grid Access: Returns a wall if out of bounds to act as a natural container.
 __device__ unsigned char device_grid_get(unsigned char* grid, int x, int y, int width, int height){
     if(device_out_of_bounds(x, y, width, height)){
         return P_WALL;
@@ -25,87 +19,69 @@ __device__ unsigned char device_grid_get(unsigned char* grid, int x, int y, int 
     return grid[y * width + x];
 }
 
-// Factory function: Structuring a movement intent for later resolution.
 __device__ Proposal create_proposal(int src_x, int src_y, int dest_x, int dest_y, unsigned char type, unsigned char preference, int priority, unsigned char is_swap, unsigned char swap_with){
     Proposal p;
-    p.src_x = src_x; p.src_y = src_y;
-    p.dest_x = dest_x; p.dest_y = dest_y;
+    p.src_x = src_x;
+    p.src_y = src_y;
+    p.dest_x = dest_x;
+    p.dest_y = dest_y;
     p.type = type;
     p.preference = preference;
     p.priority = priority;
     p.is_swap = is_swap;
-    p.swap_with = swap_with;
     return p;
 }
 
-// --- Particle Logic Generators ---
-
-// Logic for Sand: Tries to move Down -> Diagonal -> Swap (Water) -> Stay.
 __device__ void generate_sand_proposals(unsigned char* grid, Proposal* proposals, int* count, int x, int y, int generation, int width, int height){
     int priority = calculate_priority(x, y, generation, width);
     unsigned char below = device_grid_get(grid, x, y + 1, width, height);
-    
-    // Direction flip: Alternates diagonal checks to simulate realistic piling.
     int dir = (generation % 2 == 0) ? 1 : -1;
     int diag1_x = x - dir;
     int diag2_x = x + dir;
 
-    int pref = 0; // Lower number = Higher preference
-
-    // 1. Gravity: Try to fall straight down.
+    int pref = 0;
+    
+    // Pref 0: fall to empty space below
     if(below == P_EMPTY){
-        proposals[*count] = create_proposal(x, y, x, y + 1, P_SAND, (unsigned char) pref, priority, 0, P_EMPTY);
+        proposals[*count] = create_proposal(x, y, x, y + 1, P_SAND, pref, priority, 0, P_EMPTY);
         (*count)++;
+        pref++;
     }
-    pref++;
-
-    // 2. Erosion/Sliding: Try first diagonal.
-    unsigned char diag1_below = device_grid_get(grid, diag1_x, y + 1, width, height);
-    if(below != P_EMPTY && diag1_below == P_EMPTY){
-        proposals[*count] = create_proposal(x, y, diag1_x, y + 1, P_SAND, (unsigned char) pref, priority, 0, P_EMPTY);
-        (*count)++;
-    }
-    pref++;
-
-    // 3. Erosion/Sliding: Try second diagonal.
-    unsigned char diag2_below = device_grid_get(grid, diag2_x, y + 1, width, height);
-    if(below != P_EMPTY && diag2_below == P_EMPTY){
-        proposals[*count] = create_proposal(x, y, diag2_x, y + 1, P_SAND, (unsigned char) pref, priority, 0, P_EMPTY);
-        (*count)++;
-    }
-    pref++;
-
-    // 4. Density Displacement: Sand sinks in water.
-    // Parity check reduces flickering/infinite loops when sinking.
-    if(below == P_WATER){
-        if ((x + y + generation) % 2 == 0) {
-            proposals[*count] = create_proposal(x, y, x, y + 1, P_SAND, (unsigned char) pref, priority, 1, P_WATER);
+    else {
+        // Pref 0: First diagonal if below is blocked
+        unsigned char diag1_below = device_grid_get(grid, diag1_x, y + 1, width, height);
+        if(diag1_below == P_EMPTY){
+            proposals[*count] = create_proposal(x, y, diag1_x, y + 1, P_SAND, pref, priority, 0, P_EMPTY);
             (*count)++;
-        } else {
-            // Force wait: Prevents adding a "Stay" proposal later that conflicts with sinking logic.
-            proposals[*count] = create_proposal(x, y, x, y, P_SAND, (unsigned char) 4, priority, 0, P_EMPTY);
+        }
+        pref++;
+
+        // Pref 1: Second diagonal
+        unsigned char diag2_below = device_grid_get(grid, diag2_x, y + 1, width, height);
+        if(diag2_below == P_EMPTY){
+            proposals[*count] = create_proposal(x, y, diag2_x, y + 1, P_SAND, pref, priority, 0, P_EMPTY);
             (*count)++;
-            return; 
+        }
+        pref++;
+
+        // Pref 2: Swap with water below (SOLO se non può andare in diagonale)
+        if(below == P_WATER){
+            proposals[*count] = create_proposal(x, y, x, y + 1, P_SAND, pref, priority, 1, P_EMPTY);
+            (*count)++;
+            pref++;
         }
     }
-    pref++;
 
-    // 5. Fallback: Stay in place if no movement is possible.
-    // Check avoids duplicating "Stay" if previous proposals were to same location (rare optimization).
-    if(*count == 0 || proposals[*count - 1].dest_x != x || proposals[*count - 1].dest_y != y){
-        proposals[*count] = create_proposal(x, y, x, y, P_SAND, (unsigned char) pref, priority, 0, P_EMPTY);
-        (*count)++;
-    }
+    // Ultima preferenza: Stay in place
+    proposals[*count] = create_proposal(x, y, x, y, P_SAND, pref, priority, 0, P_EMPTY);
+    (*count)++;
 }
 
-// Logic for Water: Down -> Diagonals -> Horizontal -> Stay.
 __device__ void generate_water_proposals(unsigned char* grid, Proposal* proposals, int* count, int x, int y, int generation, int width, int height){
     int priority = calculate_priority(x, y, generation, width);
     unsigned char below = device_grid_get(grid, x, y + 1, width, height);
-    
-    // Direction calculation for spreading logic.
-    int left_x = x - 1; int right_x = x + 1;
-    // Alternate priority of diagonals/horizontals based on generation frame.
+    int left_x = x - 1;
+    int right_x = x + 1;
     int diag_first_x = (generation % 2 == 0) ? left_x : right_x;
     int diag_second_x = (generation % 2 == 0) ? right_x : left_x;
     int horiz_first_x = (generation % 2 == 0) ? right_x : left_x;
@@ -113,22 +89,23 @@ __device__ void generate_water_proposals(unsigned char* grid, Proposal* proposal
 
     int pref = 0;
     
-    // 1. Gravity: Fall down.
+    // Pref 0: fall to empty space below
     if(below == P_EMPTY){
         proposals[*count] = create_proposal(x, y, x, y + 1, P_WATER, (unsigned char) pref, priority, 0, P_EMPTY);
         (*count)++;
     }
     pref++;
 
-    // 2. Dispersion: Slide diagonally if blocked below.
+    // Pref 1-2: First and second diagonals if below is blocked
     if(below != P_EMPTY){
+        // Pref 1: First diagonal
         unsigned char diag_first_below = device_grid_get(grid, diag_first_x, y + 1, width, height);
         if(diag_first_below == P_EMPTY){
             proposals[*count] = create_proposal(x, y, diag_first_x, y + 1, P_WATER, (unsigned char) pref, priority, 0, P_EMPTY);
             (*count)++;
         }
         pref++;
-        
+        // Pref 2: Second diagonal
         unsigned char diag_second_below = device_grid_get(grid, diag_second_x, y + 1, width, height);
         if(diag_second_below == P_EMPTY){
             proposals[*count] = create_proposal(x, y, diag_second_x, y + 1, P_WATER, (unsigned char) pref, priority, 0, P_EMPTY);
@@ -137,17 +114,16 @@ __device__ void generate_water_proposals(unsigned char* grid, Proposal* proposal
         pref++;
     }
 
-    // Ensure preference numbering is consistent for the resolver loop.
     pref = (pref < 3) ? 3 : pref;
 
-    // 3. Flow: Move horizontally (Water exclusive behavior).
+    // Pref 3: First horizontal
     unsigned char horiz_first = device_grid_get(grid, horiz_first_x, y, width, height);
     if(horiz_first == P_EMPTY){
         proposals[*count] = create_proposal(x, y, horiz_first_x, y, P_WATER, (unsigned char) pref, priority, 0, P_EMPTY);
         (*count)++;
     }
     pref++;
-    
+    // Pref 4: Second horizontal
     unsigned char horiz_second = device_grid_get(grid, horiz_second_x, y, width, height);
     if(horiz_second == P_EMPTY){
         proposals[*count] = create_proposal(x, y, horiz_second_x, y, P_WATER, (unsigned char) pref, priority, 0, P_EMPTY);
@@ -155,29 +131,22 @@ __device__ void generate_water_proposals(unsigned char* grid, Proposal* proposal
     }
     pref++;
 
-    // 4. Fallback: Stay still.
+    // Pref 5: Stay in place
     proposals[*count] = create_proposal(x, y, x, y, P_WATER, (unsigned char) pref, priority, 0, P_EMPTY);
     (*count)++;
+
 }
 
-// --- Kernels ---
-
-// KERNEL 1: PROPOSE
-// Each thread (source cell) generates a list of desired moves.
 __global__ void generate_proposals(unsigned char* grid_in, Proposal* proposals, unsigned char* prop_counts, int width, int height, int generation){
     int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
     int tid_y = blockIdx.y * blockDim.y + threadIdx.y;
     if(tid_x >= width || tid_y >= height) return;
-    
     int thread_id = tid_y * width + tid_x;
     int total_cells = width * height;
     if(thread_id >= total_cells) return;
-
     int x = thread_id % width;
     int y = thread_id / width;
     unsigned char cell = grid_in[thread_id];
-    
-    // Determine memory offset for this cell's proposal list.
     int base_idx = thread_id * MAX_CANDIDATES_PER_CELL;
     int count = 0;
 
@@ -189,7 +158,6 @@ __global__ void generate_proposals(unsigned char* grid_in, Proposal* proposals, 
             generate_water_proposals(grid_in, &proposals[base_idx], &count, x, y, generation, width, height); 
             break;
         case P_WALL: 
-            // Walls just stay in place immediately.
             proposals[base_idx] = create_proposal(x, y, x, y, P_WALL, 0, calculate_priority(x, y, generation, width), 0, P_EMPTY); 
             count = 0; 
             break;
@@ -202,41 +170,31 @@ __global__ void generate_proposals(unsigned char* grid_in, Proposal* proposals, 
     }
 
     prop_counts[thread_id] = count;
-}
 
-// KERNEL 2: GATHER / COLLECT
-// Inverts the logic: A destination cell looks at neighbors to see who wants to move IN.
+}
 __global__ void collect_proposals(Proposal* proposals, unsigned char* prop_counts, CellState* cell_states, int width, int height){
+
     int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
     int tid_y = blockIdx.y * blockDim.y + threadIdx.y;
     if(tid_x >= width || tid_y >= height) return;
-    
     int thread_id = tid_y * width + tid_x;
     int total_cells = width * height;
     if(thread_id >= total_cells) return;
-
     int dest_x = thread_id % width;
     int dest_y = thread_id / width;
     CellState* cell_state = &cell_states[thread_id];
-    
-    // Reset state for this frame
     cell_state->candidate_count = 0;
     cell_state->resolved = 0;
     cell_state->winner_is_swap = 0;
 
-    // Scan the 3x3 neighborhood around this destination cell.
     for(int sy = dest_y - 1; sy <= dest_y + 1; sy++){
         for(int sx = dest_x - 1; sx <= dest_x + 1; sx++){
             if(sx < 0 || sx >= width || sy < 0 || sy >= height) continue;
-            
             int source_idx = sy * width + sx;
             int proposal_count = prop_counts[source_idx];
             int base_idx = source_idx * MAX_CANDIDATES_PER_CELL;
-            
-            // Check all proposals from the neighbor.
             for(int p = 0; p < proposal_count; p++){
                 Proposal* prop = &proposals[base_idx + p];
-                // If the neighbor proposes moving HERE, add to candidate list.
                 if(prop->dest_x == dest_x && prop->dest_y == dest_y){
                     int cand_idx = cell_state->candidate_count;
                     if(cand_idx < MAX_CANDIDATES_PER_CELL){
@@ -247,98 +205,110 @@ __global__ void collect_proposals(Proposal* proposals, unsigned char* prop_count
             }
         }
     }
-}
 
-// KERNEL 3: RESOLVE
-// Iteratively called for each preference level (0, 1, 2...). 
-// Picks the best candidate based on priority.
+}
 __global__ void resolv_conflicts(CellState* cell_states, unsigned char* satisfied, unsigned char current_pref, int width, int height, int* changed){
     int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
     int tid_y = blockIdx.y * blockDim.y + threadIdx.y;
     if(tid_x >= width || tid_y >= height) return;
-    
     int thread_id = tid_y * width + tid_x;
     int total_cells = width * height;
     if(thread_id >= total_cells) return;
-    
     CellState* cell_state = &cell_states[thread_id];
-    // If this cell is already filled/decided by a higher preference proposal, skip.
     if(cell_state->resolved) return;
 
     Proposal* best_proposal = nullptr;
-    
-    // Iterate candidates to find the best one for 'current_pref'.
     for(int i = 0; i < cell_state->candidate_count; i++){
         Proposal* prop = &cell_state->candidates[i];
-        
-        // Rule: Must match current preference AND the source particle hasn't moved elsewhere yet.
         if(prop->preference == current_pref && !satisfied[prop->src_y * width + prop->src_x]){
-            // Deterministic Tie-breaker (Lowest priority wins).
             if(best_proposal == nullptr || prop->priority < best_proposal->priority){
                 best_proposal = prop;
             }
         }
     }
 
-    // If a winner is found, lock this cell and the source particle.
     if(best_proposal != nullptr){
         cell_state->final_type = best_proposal->type;
         cell_state->winner_src_x = best_proposal->src_x;
         cell_state->winner_src_y = best_proposal->src_y;
         cell_state->winner_is_swap = best_proposal->is_swap;
         cell_state->resolved = 1;
-        
-        // Mark source as satisfied so it doesn't move to two places at once.
         satisfied[best_proposal->src_y * width + best_proposal->src_x] = 1;
-        
-        // Signal host that a change occurred (keep loop running).
         atomicExch(changed, 1);
     }
 }
-
-// KERNEL 4: HANDLE SWAPS
-// Specifically handles "Sand displaces Water". If sand moves into water, water must appear at sand's old spot.
-__global__ void mark_swaps(CellState* cell_states, unsigned char* swap_sources, int width, int height){
+__global__ void mark_swap_destinations(CellState* cell_states, unsigned char* swap_buffer, int width, int height){
     int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
     int tid_y = blockIdx.y * blockDim.y + threadIdx.y;
     if(tid_x >= width || tid_y >= height) return;
+    int dest_idx = tid_y * width + tid_x;
     
-    int thread_id = tid_y * width + tid_x;
-    int total_cells = width * height;
-    if(thread_id >= total_cells) return;
+    CellState* dest_state = &cell_states[dest_idx];
     
-    CellState* cell_state = &cell_states[thread_id];
+    // Rimuovi questa riga: swap_buffer[dest_idx] = 0;
     
-    if(cell_state->resolved && cell_state->winner_is_swap){
-        // The cell where the sand CAME FROM gets marked to become Water.
-        int src_idx = cell_state->winner_src_y * width + cell_state->winner_src_x;
-        swap_sources[src_idx] = P_WATER;
+    // Se qualcuno ha vinto uno swap verso questa destinazione
+    if(dest_state->resolved && dest_state->winner_is_swap){
+        int src_x = dest_state->winner_src_x;
+        int src_y = dest_state->winner_src_y;
+        int src_idx = src_y * width + src_x;
+        
+        swap_buffer[src_idx] = 1;  // Usa 1 invece di 255 per chiarezza
     }
 }
-
-// KERNEL 5: APPLY
-// Writes the final state to the output grid.
-__global__ void apply_state(CellState* cell_states, unsigned char* swap_sources, unsigned char* grid_in, unsigned char* grid_out, int width, int height){
+__global__ void apply_movements(CellState* cell_states, unsigned char* grid_out, unsigned char* grid_in, unsigned char* swap_buffer, int width, int height){
     int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
     int tid_y = blockIdx.y * blockDim.y + threadIdx.y;
     if(tid_x >= width || tid_y >= height) return;
-    
     int thread_id = tid_y * width + tid_x;
-    int total_cells = width * height;
-    if(thread_id >= total_cells) return;
     
     CellState* cell_state = &cell_states[thread_id];
+    unsigned char original = grid_in[thread_id];
     
-    // Priority: Was this cell swapped into? (Water displaced)
-    if(swap_sources[thread_id] == P_WATER){
-        grid_out[thread_id] = P_WATER;
+    // Se questa cella è la SORGENTE di uno swap, diventerà VUOTA (o acqua)
+    // NON manteniamo l'originale!
+    if(swap_buffer[thread_id] == 1){
+        grid_out[thread_id] = P_EMPTY;  // ← CORREZIONE: svuota la sorgente
         return;
     }
     
-    // Normal resolution: If a particle moved here successfully.
+    // Se questa cella è resolved
     if(cell_state->resolved){
+        // Movimento normale o destinazione di swap
         grid_out[thread_id] = cell_state->final_type;
     } else {
-        grid_out[thread_id] = P_EMPTY;
+        // Nessun movimento
+        grid_out[thread_id] = original;
+    }
+}
+__global__ void complete_swaps(CellState* cell_states, unsigned char* grid_out, unsigned char* grid_in, unsigned char* swap_buffer, int width, int height){
+    int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+    int tid_y = blockIdx.y * blockDim.y + threadIdx.y;
+    if(tid_x >= width || tid_y >= height) return;
+    int src_idx = tid_y * width + tid_x;
+    
+    // Se questa posizione è la sorgente di uno swap
+    if(swap_buffer[src_idx] == 1){
+        unsigned char original_at_src = grid_in[src_idx];
+        
+        // Trova la destinazione (deve essere sotto)
+        int below_idx = (tid_y + 1) * width + tid_x;
+        if(tid_y + 1 < height){
+            CellState* below_state = &cell_states[below_idx];
+            if(below_state->resolved && below_state->winner_is_swap &&
+               below_state->winner_src_x == tid_x && below_state->winner_src_y == tid_y){
+                
+                unsigned char original_at_dest = grid_in[below_idx];
+                
+                // Verifica che sia un vero swap SAND-WATER
+                if(original_at_src == P_SAND && original_at_dest == P_WATER){
+                    // L'acqua sale nella posizione della sabbia
+                    grid_out[src_idx] = P_WATER;
+                } else {
+                    // Sicurezza: se non è uno swap valido, mantieni vuoto
+                    grid_out[src_idx] = P_EMPTY;
+                }
+            }
+        }
     }
 }
