@@ -94,7 +94,7 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
             success = 0;
             break;
         }
-
+                
         // Pixel equals check
         for (int y = 0; y < h_a; y++)
         {
