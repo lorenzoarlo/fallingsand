@@ -163,11 +163,12 @@ void next(Universe *u, Universe *out, int generation)
                                                  *topleft < P_WATER && *topright == P_WATER);
                 int below_solid = *bottomleft >= P_WATER && *bottomright >= P_WATER;
 
-                if (top_can_move_horizontally && (below_solid && random_hash(x, y, generation, 4) < 0.8f))
+                if (top_can_move_horizontally && (below_solid || random_hash(x, y, generation, 4) < 0.8f))
                 {
                     swap(topleft, topright);
                 }
             }
+            
             int bottom_can_move_horizontally = (*bottomleft == P_WATER && *bottomright < P_WATER ||
                                                 *bottomleft < P_WATER && *bottomright == P_WATER);
             // Look if there is solid floor below
