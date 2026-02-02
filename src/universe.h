@@ -6,9 +6,9 @@
 #define UNIVERSE_H
 
 #define P_EMPTY 0
-#define P_WALL 1
+#define P_WATER 1
 #define P_SAND 2
-#define P_WATER 3
+#define P_WALL 3
 #define P_ERROR 255
 
 /**
