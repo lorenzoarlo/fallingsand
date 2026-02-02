@@ -20,6 +20,8 @@ void next_cuda_naive(Universe* u, Universe* out, int generation, CudaContext* ct
     CHECK(cudaGetLastError());
     CHECK(cudaDeviceSynchronize());
 
+    CHECK(cudaMemset(ctx->d_satisfied, 0, total_cells));
+    CHECK(cudaMemset(ctx->d_swap_sources, 0, total_cells));
     // Resolve conficts
     for(int i = 0; i < MAX_PROPOSALS_PER_CELL; i++){
         int h_changed = 0;
@@ -30,7 +32,8 @@ void next_cuda_naive(Universe* u, Universe* out, int generation, CudaContext* ct
         CHECK(cudaMemcpy(&h_changed, ctx->d_changed, sizeof(int), cudaMemcpyDeviceToHost));
         if(h_changed == 0) break;
     }
-
+    CHECK(cudaMemset(ctx->d_satisfied, 0, total_cells));
+    CHECK(cudaMemset(ctx->d_swap_sources, 0, total_cells));
     // Third kernel: mark swaps
     mark_swaps<<<grid, block>>>(ctx->d_cell_states, ctx->d_swap_sources, ctx->width, ctx->height);
     CHECK(cudaGetLastError());

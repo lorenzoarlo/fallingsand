@@ -145,8 +145,10 @@ __device__ void generate_water_proposals(unsigned char* grid, Proposal* proposal
 }
 
 __global__ void generate_proposals(unsigned char* grid_in, Proposal* proposals, unsigned char* prop_counts, int width, int height, int generation){
-
-    int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
+    int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+    int tid_y = blockIdx.y * blockDim.y + threadIdx.y;
+    if(tid_x >= width || tid_y >= height) return;
+    int thread_id = tid_y * width + tid_x;
     int total_cells = width * height;
     if(thread_id >= total_cells) return;
     int x = thread_id % width;
@@ -164,7 +166,7 @@ __global__ void generate_proposals(unsigned char* grid_in, Proposal* proposals, 
             break;
         case P_WALL: 
             proposals[base_idx] = create_proposal(x, y, x, y, P_WALL, 0, calculate_priority(x, y, generation, width), 0, P_EMPTY); 
-            count = 0; 
+            count = 1; 
             break;
         case P_EMPTY:
             count = 0;
@@ -179,7 +181,10 @@ __global__ void generate_proposals(unsigned char* grid_in, Proposal* proposals, 
 }
 __global__ void collect_proposals(Proposal* proposals, unsigned char* prop_counts, CellState* cell_states, int width, int height){
 
-    int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
+    int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+    int tid_y = blockIdx.y * blockDim.y + threadIdx.y;
+    if(tid_x >= width || tid_y >= height) return;
+    int thread_id = tid_y * width + tid_x;
     int total_cells = width * height;
     if(thread_id >= total_cells) return;
     int dest_x = thread_id % width;
@@ -210,7 +215,10 @@ __global__ void collect_proposals(Proposal* proposals, unsigned char* prop_count
 
 }
 __global__ void resolv_conflicts(CellState* cell_states, unsigned char* satisfied, unsigned char current_pref, int width, int height, int* changed){
-    int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
+    int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+    int tid_y = blockIdx.y * blockDim.y + threadIdx.y;
+    if(tid_x >= width || tid_y >= height) return;
+    int thread_id = tid_y * width + tid_x;
     int total_cells = width * height;
     if(thread_id >= total_cells) return;
     CellState* cell_state = &cell_states[thread_id];
@@ -237,7 +245,10 @@ __global__ void resolv_conflicts(CellState* cell_states, unsigned char* satisfie
     }
 }
 __global__ void mark_swaps(CellState* cell_states, unsigned char* swap_sources, int width, int height){
-    int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
+    int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+    int tid_y = blockIdx.y * blockDim.y + threadIdx.y;
+    if(tid_x >= width || tid_y >= height) return;
+    int thread_id = tid_y * width + tid_x;
     int total_cells = width * height;
     if(thread_id >= total_cells) return;
     CellState* cell_state = &cell_states[thread_id];
@@ -247,7 +258,10 @@ __global__ void mark_swaps(CellState* cell_states, unsigned char* swap_sources, 
     }
 }
 __global__ void apply_state(CellState* cell_states, unsigned char* swap_sources, unsigned char* grid_out, int width, int height){
-    int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
+    int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
+    int tid_y = blockIdx.y * blockDim.y + threadIdx.y;
+    if(tid_x >= width || tid_y >= height) return;
+    int thread_id = tid_y * width + tid_x;
     int total_cells = width * height;
     if(thread_id >= total_cells) return;
     CellState* cell_state = &cell_states[thread_id];
