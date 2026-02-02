@@ -4,8 +4,8 @@
  */
 #include "test.h"
 
-#include "io.h"    // For io_open_read, io_read_frame
-#include <stdio.h> // For fprintf, stderr
+#include "io.h"     // For io_open_read, io_read_frame
+#include <stdio.h>  // For fprintf, stderr
 #include <stdlib.h> // For malloc, free
 int test_sand(const char *filename_a, const char *filename_b, Universe ***out_diff_sequence, int *out_frames)
 {
@@ -81,7 +81,8 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
     for (int i = 0; i < f_a; i++)
     {
         diffs[i] = universe_create(w_a, h_a);
-        if (!diffs[i]) {
+        if (!diffs[i])
+        {
             perror("test_sand -> Memory allocation failed for difference universe");
             success = 0;
             break;
@@ -94,7 +95,7 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
             success = 0;
             break;
         }
-                
+
         // Pixel equals check
         for (int y = 0; y < h_a; y++)
         {
@@ -104,6 +105,10 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
                 unsigned char b = universe_get(temp_b, x, y);
                 // Mark difference or empty
                 universe_set(diffs[i], x, y, (a == b) ? P_EMPTY : P_ERROR);
+                if (a != b)
+                {
+                    success = 0;
+                }
             }
         }
     }
@@ -116,7 +121,7 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
 
     if (success)
     {
-        *out_frames = f_a; 
+        *out_frames = f_a;
         *out_diff_sequence = diffs;
         return 0;
     }
