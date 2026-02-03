@@ -1,5 +1,6 @@
+# 
 # script to convert Piskel .piskel files to .sand format (Compressed)
-
+#
 import json
 import base64
 import io

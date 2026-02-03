@@ -1,6 +1,19 @@
+- [Falling sand project](#falling-sand-project)
+  - [Algorithm overview](#algorithm-overview)
+    - [Base structure](#base-structure)
+    - [Function Prototype](#function-prototype)
+    - [`next` function logic](#next-function-logic)
+  - [Change the simulation logic](#change-the-simulation-logic)
+  - [Make file commands](#make-file-commands)
+  - [Create a video](#create-a-video)
+
 # Falling sand project
 
 The falling sand project is a simulation of particles that interact with each other based on simple physical rules. The main types of particles are empty space, walls, sand, and water. Each particle type has its own behavior, such as falling under gravity or flowing.
+
+<video src="https://github.com/lorenzoarlo/fallingsand/assets/videos/animation-1.mp4" controls="controls" style="max-width: 100%;">
+  Your browser does not support the video tag.
+</video>
 
 ## Algorithm overview
 

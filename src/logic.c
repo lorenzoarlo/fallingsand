@@ -1,272 +1,202 @@
-/**
- * @file logic.c
- * @brief Naive implementation of the simulation logic for Falling Sand
- */
 #include "simulation.h"
-#include <stdlib.h>
 #include <string.h>
-#include <stdio.h> // For perror
+#include <stdlib.h>
+#include <stdbool.h>
+
+#define SAND_NOISE_CHANCE 0.4f
+#define WATER_FALL_DOWN_CHANCE 0.9f
+#define WATER_FALL_DENSITY_CHANCE 1.0f
+#define WATER_MOVE_DIAGONAL_CHANCE 0.5f
+#define WATER_MOVE_HORIZONTAL_CHANCE 0.8f
 
 /**
- * @brief Wrapper structure to hold the current universe and a clock buffer.
+ * Pseudo random function based on hash but deterministic
  */
-typedef struct WrapUniverse
+static inline float random_hash(int x, int y, int frame, int salt)
 {
-    Universe *current;
-    unsigned char *clock;
-} WrapUniverse;
-
-/**
- * @brief Checks if the cell at (x, y) has already been updated in the current generation.
- * @param in Pointer to the WrapUniverse containing the clock buffer.
- * @param x The x-coordinate of the cell.
- * @param y The y-coordinate of the cell.
- */
-static inline int already_updated(WrapUniverse *in, int x, int y)
-{
-    if (universe_out_of_bounds(in->current, x, y))
-    {
-        return 0; // Out of bounds
-    }
-    return in->clock[UINDEX(x, y, in->current->width)] == 1;
+    unsigned int n = (x * 374761393) ^ (y * 668265263) ^ (frame * 1274126177) ^ (salt * 387413);
+    n = (n ^ (n >> 13)) * 1274126177;
+    return (float)(n & 0xFFFF) / 65535.0f;
 }
 
 /**
- * @brief Marks the cell at (x, y) as updated in the current generation.
- * @param in Pointer to the WrapUniverse containing the clock buffer.
- * @param x The x-coordinate of the cell.
- * @param y The y-coordinate of the cell.
+ *  Utility function to swap two cells
  */
-static inline void update_cellsclock(WrapUniverse *in, int x, int y)
+static inline void swap(unsigned char *a, unsigned char *b)
 {
-    if (universe_out_of_bounds(in->current, x, y))
-    {
-        return; // Out of bounds
-    }
-    in->clock[UINDEX(x, y, in->current->width)] = 1;
+    unsigned char temp = *a;
+    *a = *b;
+    *b = temp;
 }
 
 /**
- * @brief Gets the particle type at (x, y) by verifying if already updated.
- * @param in Pointer to the WrapUniverse containing the current universe.
- * @param out Pointer to the Universe representing the next state.
- * @param x The x-coordinate.
- * @param y The y-coordinate.
- * @return The particle type at the specified coordinates.
+ * Utility function to set cell type
  */
-static inline unsigned char universe_wrap_get(WrapUniverse *in, Universe *out, int x, int y)
+static inline void set_cell(unsigned char *cell, unsigned char type)
 {
-    return already_updated(in, x, y) ? universe_get(out, x, y) : universe_get(in->current, x, y);
+    *cell = type;
 }
 
 /**
- * @brief Handles the behavior of a SAND particle.
- * @param u Pointer to the Universe (current state being modified).
- * @param x Current x-coordinate of the particle.
- * @param y Current y-coordinate of the particle.
- * @param generation Current generation index.
+ * Utility function to get cell type with out-of-bounds check
  */
-static inline void update_sand(WrapUniverse *in, Universe *out, int x, int y, int generation)
+static inline unsigned char get_cell(Universe *u, int x, int y)
 {
-    int below_y = y + 1;
-    unsigned char cell_below = universe_wrap_get(in, out, x, below_y);
-
-    // Fall through EMPTY space
-    if (cell_below == P_EMPTY)
+    if (universe_out_of_bounds(u, x, y))
     {
-        universe_set(out, x, below_y, P_SAND);
-        universe_set(out, x, y, P_EMPTY);
-        update_cellsclock(in, x, below_y);
-        return;
+        return P_WALL;
     }
+    return u->cells[UINDEX(x, y, u->width)];
+}
 
-    // Verify diagonals when blocked by SAND or WALL
-    int dir = (generation % 2 == 0) ? 1 : -1;
-    int diag1_x = x - dir;
-    int diag2_x = x + dir;
+/**
+ * Compute the next generation of the universe
+ */
+void next(Universe *u, Universe *out, int generation)
+{
 
-    // This means that there is something else below (SAND or WALL or WATER)
-    // Check first diagonal
-    if (universe_wrap_get(in, out, diag1_x, below_y) == P_EMPTY)
-    {
-        universe_set(out, diag1_x, below_y, P_SAND);
-        universe_set(out, x, y, P_EMPTY);
-        update_cellsclock(in, diag1_x, below_y);
-        return;
-    }
-    // Check second diagonal
-    if (universe_wrap_get(in, out, diag2_x, below_y) == P_EMPTY)
-    {
-        universe_set(out, diag2_x, below_y, P_SAND);
-        universe_set(out, x, y, P_EMPTY);
-        update_cellsclock(in, diag2_x, below_y);
-        return;
-    }
+    // Copying by default the entire universe
+    memcpy(out->cells, u->cells, u->width * u->height);
 
-    // Only if the cell below is WATER, we have to manage the swap (density)
-    if (cell_below == P_WATER)
+    // Choose which cell of the 2x2 block to offset based on generation
+    // Pattern Margolus for alternates (0,0) -> (1,1) -> (0,1) -> (1,0)
+    int phase = generation % 4;
+    int offset_x = (phase == 1 || phase == 3) ? 1 : 0;
+    int offset_y = (phase == 1 || phase == 2) ? 1 : 0;
+
+    // Iterate over the universe in 2x2 blocks
+    for (int y = offset_y; y < u->height - 1; y += 2)
     {
-        // To simulate viscosity, we make SAND stay still in half of the cases
-        // Unless we will have a bad tendency to have WATER going up too fast
-        if ((x + y + generation) % 2 != 0)
+        for (int x = offset_x; x < u->width - 1; x += 2)
         {
-            universe_set(out, x, y, P_SAND); // Stay in place
-            return;
-        }
+            // calculate index of the 4 cells
+            int i_topleft = (y * u->width) + x;
+            int i_topright = (y * u->width) + (x + 1);
+            int i_bottomleft = ((y + 1) * u->width) + x;
+            int i_bottomright = ((y + 1) * u->width) + (x + 1);
 
-        // Else swap positions
-        universe_set(out, x, below_y, P_SAND);
-        universe_set(out, x, y, P_WATER); // L'acqua sale
-        update_cellsclock(in, x, below_y);
-        return;
-    }
+            // Pointers to the 4 cells
+            unsigned char *topleft = &out->cells[i_topleft];
+            unsigned char *topright = &out->cells[i_topright];
+            unsigned char *bottomleft = &out->cells[i_bottomleft];
+            unsigned char *bottomright = &out->cells[i_bottomright];
 
-    // If we are here, it means that SAND couldn't go down or diagonally
-    universe_set(out, x, y, P_SAND);
-}
-/**
- * @brief Handles the behavior of a WATER particle.
- * @param u Pointer to the Universe (current state being modified).
- * @param x Current x-coordinate of the particle.
- * @param y Current y-coordinate of the particle.
- * @param generation Current generation index.
- */
-void update_water(WrapUniverse *in, Universe *out, int x, int y, int generation)
-{
-    // Unwrap
-    Universe *u = in->current;
+            // If all cells are the same, skip processing
+            if (*topleft == *topright && *bottomleft == *bottomright && *topleft == *bottomleft)
+                continue;
 
-    int below_y = y + 1;
-    unsigned char cell_below = universe_wrap_get(in, out, x, below_y);
+            int topleft_moved = 0;
+            int topright_moved = 0;
 
-    if (cell_below == P_EMPTY)
-    {
-        universe_set(out, x, below_y, P_WATER); // Swap below cell with water
-        universe_set(out, x, y, P_EMPTY);       // Insert in cell below
-        update_cellsclock(in, x, below_y);      // Mark as updated also the below cell
-        return;
-    }
+            // Manage horizontal SAND movement (to make it more noisy when falling)
+            int topsand_can_move = *topleft == P_SAND && *topright < P_SAND ||
+                                   *topright == P_SAND && *topleft < P_SAND;
 
-    if (cell_below == P_WALL || cell_below == P_WATER || cell_below == P_SAND)
-    {
-        int left_x = x - 1;
-        int right_x = x + 1;
-        int first_x, second_x;
-        // Determine diagonal check order based on generation parity
-        // In generation even: left first, odd: right first
-        first_x = (generation % 2 == 0) ? left_x : right_x;
-        second_x = (generation % 2 == 0) ? right_x : left_x;
-
-        // Check first diagonal
-        if (universe_wrap_get(in, out, first_x, below_y) == P_EMPTY)
-        {
-            universe_set(out, first_x, below_y, P_WATER); // Move water to diagonal
-            universe_set(out, x, y, P_EMPTY);             // Leave current cell empty
-            update_cellsclock(in, first_x, below_y);      // Mark as updated also the other cell
-            return;
-        }
-        // Check second diagonal
-        if (universe_wrap_get(in, out, second_x, below_y) == P_EMPTY)
-        {
-            universe_set(out, second_x, below_y, P_WATER); // Move water to diagonal
-            universe_set(out, x, y, P_EMPTY);              // Leave current cell empty
-            update_cellsclock(in, second_x, below_y);      // Mark as updated also the other cell
-            return;
-        }
-    }
-
-    // If we are here, it means that water couldn't go down or diagonally
-    // Try to move horizontally
-
-    int left_x = x - 1;
-    int right_x = x + 1;
-    // Determine horizontal check order based on generation parity
-    int h_first = (generation % 2 == 0) ? right_x : left_x;
-    int h_second = (generation % 2 == 0) ? left_x : right_x;
-
-    if (universe_wrap_get(in, out, h_first, y) == P_EMPTY)
-    {
-        universe_set(out, h_first, y, P_WATER);
-        universe_set(out, x, y, P_EMPTY);
-        update_cellsclock(in, h_first, y); // Mark as updated also the moved cell
-        return;
-    }
-
-    if (universe_wrap_get(in, out, h_second, y) == P_EMPTY)
-    {
-        universe_set(out, x, y, P_EMPTY);
-        universe_set(out, h_second, y, P_WATER);
-        update_cellsclock(in, h_second, y); // Mark as updated also the moved cell
-        return;
-    }
-
-    universe_set(out, x, y, P_WATER); // Stay in place
-}
-
-static inline void update_wall(WrapUniverse *in, Universe *out, int x, int y, int generation)
-{
-    // WALL particles do not move; they remain static.
-    universe_set(out, x, y, P_WALL);
-}
-
-static inline void update_empty(WrapUniverse *in, Universe *out, int x, int y, int generation)
-{
-    // EMPTY cells remain empty.
-    universe_set(out, x, y, P_EMPTY);
-}
-
-void next(Universe *u, Universe* out, int generation)
-{
-    int is_odd = generation % 2 != 0;
-    int step_x = 1 - (is_odd * 2);
-    int start_x = is_odd * (u->width - 1);
-
-    // Create clock buffer
-    unsigned char *clock_buffer = (unsigned char *)calloc(u->width * u->height, sizeof(unsigned char));
-    WrapUniverse wrap = {u, clock_buffer};
-
-    // Iteration Order: Top to Bottom
-    for (int y = 0; y < u->height; y++)
-    {
-        for (int x = 0; x < u->width; x++)
-        {
-            int real_x = start_x + (x * step_x);
-            // Update only if not already updated
-            if (already_updated(&wrap, real_x, y))
+            int sand_is_falling = *bottomleft < P_SAND && *bottomright < P_SAND;
+            if (topsand_can_move && sand_is_falling && random_hash(x, y, generation, 0) < SAND_NOISE_CHANCE)
             {
-                continue; // Skip already updated cells
+                swap(topleft, topright);
+                topleft_moved = 1;
+                topright_moved = 1;
             }
-            // Mark as updated
-            update_cellsclock(&wrap, real_x, y);
 
-            unsigned char cell = universe_get(u, real_x, y);
-            switch (cell)
+            // Manage SAND falling
+
+            // topleft sand particle
+            if (!topleft_moved && *topleft == P_SAND)
             {
-            case P_SAND:
-            {
-                update_sand(&wrap, out, real_x, y, generation);
-                break;
+                // Can fall down?
+                if (*bottomleft < P_SAND)
+                {
+                    if (random_hash(x, y, generation, 1) < WATER_FALL_DOWN_CHANCE)
+                    {
+                        swap(topleft, bottomleft);
+                    }
+                }
+                // Can fall diagonally?
+                else if (*topright < P_SAND && *bottomright < P_SAND)
+                {
+                    swap(topleft, bottomright);
+                }
             }
-            case P_WATER:
+            // topright sand particle
+            if (!topright_moved && *topright == P_SAND)
             {
-                update_water(&wrap, out, real_x, y, generation);
-                break;
+                // Can fall down
+                if (*bottomright < P_SAND)
+                {
+                    if (random_hash(x, y, generation, 1) < WATER_FALL_DOWN_CHANCE)
+                    {
+                        swap(topright, bottomright);
+                    }
+                }
+                else if (*topleft < P_SAND && *bottomleft < P_SAND)
+                {
+                    swap(topright, bottomleft); // Cade in diagonale
+                }
             }
-            case P_WALL:
+
+            // Manage WATER falling and horizontal movement
+            int drop_left = 0;
+            int drop_right = 0;
+
+            // topleft water particle
+            if (*topleft == P_WATER)
             {
-                update_wall(&wrap, out, real_x, y, generation);
-                break;
+                // Is the cell below lower density?
+                if (*bottomleft < *topleft && random_hash(x, y, generation, 2) < WATER_FALL_DENSITY_CHANCE)
+                {
+                    swap(topleft, bottomleft);
+                    drop_left = 1;
+                }
+                // Can move diagonally?
+                else if (*topright < *topleft && *bottomright < *topleft && random_hash(x, y, generation, 3) < WATER_MOVE_DIAGONAL_CHANCE)
+                {
+                    swap(topleft, bottomright);
+                    drop_left = 1;
+                }
             }
-            case P_EMPTY:
+
+            // topright water particle
+            if (*topright == P_WATER)
             {
-                update_empty(&wrap, out, real_x, y, generation);
-                break;
+                // Is the cell below lower density?
+                if (*bottomright < *topright && random_hash(x, y, generation, 2) < WATER_FALL_DENSITY_CHANCE)
+                {
+                    swap(topright, bottomright);
+                    drop_right = 1;
+                } // Can move diagonally?
+                else if (*topleft < *topright && *bottomleft < *topright && random_hash(x, y, generation, 3) < WATER_MOVE_DIAGONAL_CHANCE)
+                {
+                    swap(topright, bottomleft);
+                    drop_right = 1;
+                }
             }
-            default:
-                break;
+
+            // Horizontal water movement if not dropped
+            if (!drop_left && !drop_right)
+            {
+                int top_can_move_horizontally = (*topleft == P_WATER && *topright < P_WATER ||
+                                                 *topleft < P_WATER && *topright == P_WATER);
+                int below_solid = *bottomleft >= P_WATER && *bottomright >= P_WATER;
+
+                if (top_can_move_horizontally && (below_solid || random_hash(x, y, generation, 4) < WATER_MOVE_HORIZONTAL_CHANCE))
+                {
+                    swap(topleft, topright);
+                }
+            }
+
+            int bottom_can_move_horizontally = (*bottomleft == P_WATER && *bottomright < P_WATER ||
+                                                *bottomleft < P_WATER && *bottomright == P_WATER);
+            // Look if there is solid floor below
+            int floor_is_solid = get_cell(u, x, y + 2) >= P_WATER && get_cell(u, x + 1, y + 2) >= P_WATER;
+
+            // Swap of below cells if possible
+            // Use different random channel to avoid correlation with top movement
+            if (bottom_can_move_horizontally && (floor_is_solid || random_hash(x, y, generation, 5) < WATER_MOVE_HORIZONTAL_CHANCE))
+            {
+                swap(bottomleft, bottomright);
             }
         }
     }
-
-    free(clock_buffer);
 }
