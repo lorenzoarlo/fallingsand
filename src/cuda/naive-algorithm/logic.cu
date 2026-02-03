@@ -11,8 +11,6 @@ void next(Universe* u_in, Universe* u_out, int generation){
 
     size_t grid_size = u_in->width * u_in->height * sizeof(unsigned char);
 
-    memcpy(u_out->cells, u_in->cells, grid_size);
-
     unsigned char* d_grid_in;
     unsigned char* d_grid_out;
     CHECK(cudaMalloc(&d_grid_in, grid_size));

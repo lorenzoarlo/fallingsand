@@ -38,6 +38,10 @@ default_testdiff_cuda: default_cuda
 	mkdir -p output/logs/
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -s ${SCALE} -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log -oi output/images/sample-${SAMPLE}/
 
+default_performace_ncu: default_cuda
+	mkdir -p output
+	mkdir -p output/ncu_reports/
+	ncu --set full -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
 
 video_cuda: default_cuda
 	mkdir -p output

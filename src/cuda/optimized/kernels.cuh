@@ -1,13 +1,17 @@
 #ifndef CUDA_KERNELS
 #define CUDA_KERNELS
 
-#include "../check.cuh"
-#include <stdio.h>
-#include "../../universe.h"
-#include <cuda_runtime.h>
+#include "../../simulation.h"
 
-#define BLOCK_SIZE 16
+// OTTIMIZZAZIONE: da 16 a 32
+#define BLOCK_SIZE 32
 
-__global__ void sand_step_kernel(const unsigned char* in, unsigned char* out, int w, int h, int gen, unsigned char* clock);
+#define SAND_NOISE_CHANCE 0.4f
+#define WATER_FALL_DOWN_CHANCE 0.9f
+#define WATER_FALL_DENSITY_CHANCE 1.0f
+#define WATER_MOVE_DIAGONAL_CHANCE 0.5f
+#define WATER_MOVE_HORIZONTAL_CHANCE 0.8f
+
+__global__ void kernel(unsigned char* grid_in, unsigned char* grid_out, int width, int height, int offset_x, int offset_y, int generation);
 
 #endif
