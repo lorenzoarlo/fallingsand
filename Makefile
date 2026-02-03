@@ -38,10 +38,19 @@ default_testdiff_cuda: default_cuda
 	mkdir -p output/logs/
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -s ${SCALE} -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log -oi output/images/sample-${SAMPLE}/
 
-default_performace_ncu: default_cuda
+default_performance_ncu: default_cuda
 	mkdir -p output
 	mkdir -p output/ncu_reports/
-	ncu --set full -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
+	mkdir -p output/logs/
+	ncu  --set full -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
+
+default_performance_nvprof: default_cuda
+	mkdir -p output
+	mkdir -p output/ncu_reports/
+	mkdir -p output/logs/
+	rm -f output/images/sample-${SAMPLE}-*.png
+	mkdir -p output/images/sample-${SAMPLE}
+	nvprof --metrics achieved_occupancy,ipc,warp_execution_efficiency,gld_efficiency,gst_efficiency -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
 
 video_cuda: default_cuda
 	mkdir -p output
@@ -64,6 +73,7 @@ clean:
 	rm -rf bin
 clean_output:
 	rm -rf output/*.sand
+	rm -rf output/ncu_reports/*
 	rm -rf output/images/**/*.png
 	rm -rf output/images/**/*.ppm 
 	rm -rf output/videos/*.mp4

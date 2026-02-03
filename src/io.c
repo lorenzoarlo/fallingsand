@@ -19,7 +19,7 @@ FILE *io_create_file(const char *filename, int width, int height)
     FILE *file = fopen(filename, "wb");
     if (!file)
     {
-        sprintf(stderr, "io_create_file -> Error creating file \"%s\"!\n", filename);
+        fprintf(stderr, "io_create_file -> Error creating file \"%s\"!\n", filename);
         return NULL;
     }
 
@@ -96,7 +96,7 @@ FILE *io_open_read(const char *filename, int *width, int *height, int *num_frame
     FILE *file = fopen(filename, "rb");
     if (!file)
     {
-        sprintf(stderr,"io_open_read -> Error opening file \"%s\"!\n", filename);
+        fprintf(stderr,"io_open_read -> Error opening file \"%s\"!\n", filename);
         return NULL;
     }
 
