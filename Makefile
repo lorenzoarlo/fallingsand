@@ -47,7 +47,7 @@ default_performance_ncu: default_cuda
 	mkdir -p output
 	mkdir -p output/ncu_reports/
 	mkdir -p output/logs/
-	ncu  --set full -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
+	ncu  --set full --section SpeedOfLight_RooflineChart -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
 
 default_performance_nvprof: default_cuda
 	mkdir -p output

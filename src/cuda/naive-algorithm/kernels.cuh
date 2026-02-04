@@ -3,7 +3,7 @@
 
 #include "../../simulation.h"
 
-#define BLOCK_SIZE 16
+#define BLOCK_SIZE 8
 
 #define SAND_NOISE_CHANCE 0.4f
 #define WATER_FALL_DOWN_CHANCE 0.9f
