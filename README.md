@@ -120,7 +120,7 @@ where:
 
 
 ```bash
-make default_test # Build and run with default logic implementation and test it against reference
+make test # Build and run with default logic implementation and test it against reference
 ```
 
 About references, by default it expected files to be in `assets/references/` folder and logs will be saved in `output/logs/` folder.

@@ -48,4 +48,4 @@ output/*
 assets/references/
 assets/videos/
 assets/logs/
-!assets/videos/animation-1.mp4
+simulazione.trace

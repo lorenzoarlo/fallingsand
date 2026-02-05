@@ -1,11 +1,17 @@
 cmake_minimum_required(VERSION 3.10)
-project(FallingSandProject C)
+project(FallingSandProject)
 
-# Imposta lo standard C
+
+
+# Set C standard
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Opzione per abilitare la logica CUDA
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Option to enable CUDA logic
 option(ENABLE_CUDA "Enable CUDA simulation logic" OFF)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -37,6 +43,24 @@ else()
         ${CORE_SOURCES}
         ${SIMULATION_LOGIC}
     )
+
+    # Check if SIMULATION_LOGIC is a .cpp file to set C++ compilation
+    if (SIMULATION_LOGIC MATCHES "\\.cpp$")
+        message(STATUS "Detected C++ SIMD logic. Linking Highway...")
+        # Search for Highway library
+        find_library(HWY_LIB hwy)
+        find_path(HWY_INCLUDE_DIR hwy/highway.h)
+
+        if(HWY_LIB AND HWY_INCLUDE_DIR)
+            message(STATUS "Found Google Highway library: ${HWY_LIB}")
+            message(STATUS "Found Google Highway headers: ${HWY_INCLUDE_DIR}")
+
+            target_link_libraries(fallingsand PRIVATE ${HWY_LIB})
+            target_include_directories(fallingsand PRIVATE ${HWY_INCLUDE_DIR})
+        else()
+            message(FATAL_ERROR "Google Highway library (libhwy) not found! Install it via 'brew install highway' or apt.")
+        endif()
+    endif()
 endif()
 # only link math library on Unix-like systems
 # target_link_libraries(fallingsand m)
