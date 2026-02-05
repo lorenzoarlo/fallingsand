@@ -34,7 +34,7 @@ if(ENABLE_CUDA)
         set(SIMULATION_LOGIC "src/cuda/super-optimized")
     endif()
     message(STATUS "Compiling with LOGIC=${SIMULATION_LOGIC}")
-    file(GLOB CUDA_SOURCES "src/cuda/super-optimized/*.cu")
+    file(GLOB CUDA_SOURCES "${SIMULATION_LOGIC}/*.cu")
     add_executable(fallingsand
         ${CORE_SOURCES}
         ${CUDA_SOURCES}
