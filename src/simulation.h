@@ -12,6 +12,12 @@
 extern "C" {
 #endif
 
+#define SAND_NOISE_CHANCE 0.4f
+#define WATER_FALL_DOWN_CHANCE 0.9f
+#define WATER_FALL_DENSITY_CHANCE 1.0f
+#define WATER_MOVE_DIAGONAL_CHANCE 0.6f
+#define WATER_MOVE_HORIZONTAL_CHANCE 0.9f
+
 /**
  * @brief Calculates the next state of the universe based on the current state.
  * @param universe Pointer to the current Universe state.

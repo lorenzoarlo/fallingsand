@@ -26,6 +26,12 @@ output_video: SCALE = 4
 output_video: FRAMES = 1500
 output_video: video
 
+capture-original: LOGIC = src/utility/freeze.c
+capture-original: default
+	mkdir -p output
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 10 -oi output/images/sample-${SAMPLE}/ -s 4 -l /dev/null
+
+
 # Run simulation and compare output with reference solution (without image output)
 test: default
 	mkdir -p output
@@ -60,6 +66,19 @@ test-simd-manual: default
 
 test-simd-manual-o3: LOGIC = src/simd/simd-optimized.cpp
 test-simd-manual-o3: default-o3
+	mkdir -p output
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+
+test-simd-manual-prefetch: LOGIC = src/simd/simd-optimized-manual-prefetch.cpp
+test-simd-manual-prefetch: default
+	mkdir -p output
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+
+
+test-simd-manual-prefetch-o3: LOGIC = src/simd/simd-optimized-manual-prefetch.cpp
+test-simd-manual-prefetch-o3: default-o3
 	mkdir -p output
 	mkdir -p output/logs/
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
