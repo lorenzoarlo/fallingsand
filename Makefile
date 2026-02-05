@@ -3,6 +3,7 @@ FRAMES ?= 100
 SCALE ?= 1
 SAMPLE ?= 1
 LOGIC ?= src/logic.c
+CUDA_ARCHITECTURES ?= 75
 
 # Default target
 default:
@@ -31,7 +32,7 @@ test: default
 
 # Base CUDA target
 default_cuda: 
-	cmake -B build -DENABLE_CUDA=ON -DCMAKE_CUDA_COMPILER=/usr/bin/nvcc
+	cmake -B build -DENABLE_CUDA=ON -DCMAKE_CUDA_COMPILER=/usr/bin/nvcc -DSIMULATION_LOGIC=${LOGIC} -DCUDA_ARCH=${CUDA_ARCHITECTURES}
 	cmake --build build
 default_test_cuda: default_cuda
 	mkdir -p output
@@ -47,7 +48,7 @@ default_performance_ncu: default_cuda
 	mkdir -p output
 	mkdir -p output/ncu_reports/
 	mkdir -p output/logs/
-	ncu  --set full --section SpeedOfLight_RooflineChart -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
+	ncu --set full --section SpeedOfLight_RooflineChart -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
 
 default_performance_nvprof: default_cuda
 	mkdir -p output

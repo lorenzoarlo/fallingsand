@@ -3,7 +3,6 @@
 
 #include "../../simulation.h"
 
-// OTTIMIZZAZIONE: da 16 a 32
 #define BLOCK_SIZE 8
 
 #define SAND_NOISE_CHANCE 0.4f
