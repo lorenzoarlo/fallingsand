@@ -107,7 +107,6 @@ void testing(CLIConfig config)
     else
     {
         fprintf(stderr, "Test FAILED (code %d). Output differs from reference.\n", result);
-
         // If output folder is available, save difference images
         if (config.output_folder != NULL && diffs_array != NULL)
         {

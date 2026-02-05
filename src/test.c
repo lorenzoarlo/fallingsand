@@ -11,7 +11,7 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
 {
     if (out_frames == NULL)
     {
-        perror("test_sand -> Output frames variable not valid");
+        fprintf(stderr, "test_sand -> Output frames variable not valid");
         return PARAMETERS_NO_VALID_ERROR;
     }
     int w_a, h_a, f_a; // width, height, frames for file A
@@ -44,6 +44,8 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
         fclose(fb);
         return PARAMETERS_MISMATCH_ERROR;
     }
+
+    *out_frames = f_a;
 
     // Allocate memory for the differences sequence;
     Universe **diffs = (Universe **)calloc(f_a, sizeof(Universe *));
@@ -91,7 +93,7 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
         // Reading frames
         if (io_read_frame(fa, temp_a) != 0 || io_read_frame(fb, temp_b) != 0)
         {
-            perror("test_sand -> Error reading frames from test files");
+            fprintf(stderr, "test_sand -> Error reading frames from test files");
             success = 0;
             break;
         }
@@ -121,20 +123,23 @@ int test_sand(const char *filename_a, const char *filename_b, Universe ***out_di
 
     if (success)
     {
-        *out_frames = f_a;
-        *out_diff_sequence = diffs;
+        // File identici: libera tutto e ritorna successo
+        for (int k = 0; k < *out_frames; k++)
+        {
+            if (diffs[k])
+            {
+                universe_destroy(diffs[k]);
+            }
+        }
+        free(diffs);
+        *out_diff_sequence = NULL;
+        *out_frames = 0;
         return 0;
     }
-
-    // Clean allocated diffs in case of failure
-    for (int k = 0; k < f_a; k++)
+    else
     {
-        if (diffs[k])
-        {
-            universe_destroy(diffs[k]);
-        }
+        *out_frames = f_a;
+        *out_diff_sequence = diffs;
+        return 1;
     }
-    free(diffs);
-
-    return FILE_FORMAT_ERROR;
 }

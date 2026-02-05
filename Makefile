@@ -9,6 +9,9 @@ CUDA_ARCHITECTURES ?= 75
 default:
 	cmake -B build -DSIMULATION_LOGIC="${LOGIC}"
 	cmake --build build
+default-o3: 
+	cmake -B build -DSIMULATION_LOGIC="${LOGIC}" -DCMAKE_BUILD_TYPE=Release
+	cmake --build build
 # Run simulation and generate video logic
 video: default
 	mkdir -p output
@@ -29,6 +32,50 @@ test: default
 	mkdir -p output
 	mkdir -p output/logs/
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log
+
+test-o3: default-o3
+	mkdir -p output
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+
+
+test-simd: LOGIC = src/simd/simd-optimized.cpp
+test-simd: default
+	mkdir -p output
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+
+
+test-simd-o3: LOGIC = src/simd/simd-optimized.cpp
+test-simd-o3: default-o3
+	mkdir -p output
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+
+test-simd-manual: LOGIC = src/simd/simd-optimized-manual-shuffle.cpp
+test-simd-manual: default
+	mkdir -p output
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+
+
+test-simd-manual-o3: LOGIC = src/simd/simd-optimized.cpp
+test-simd-manual-o3: default-o3
+	mkdir -p output
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+
+video-simd: LOGIC = src/simd/simd-optimized.cpp
+video-simd: default
+	mkdir -p output
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -oi output/images/sample-${SAMPLE}/  -l output/logs/sample-${SAMPLE}-performance.log
+
+performance-simd: LOGIC = src/simd/simd-optimized.cpp
+performance-simd: default
+	mkdir -p output
+	mkdir -p output/logs/
+	xcrun xctrace record --template "Time Profiler" --output simulazione.trace --launch -- ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log 
 
 # Base CUDA target
 default_cuda: 
