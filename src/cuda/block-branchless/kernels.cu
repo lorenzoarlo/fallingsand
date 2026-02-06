@@ -29,8 +29,8 @@ __device__ inline unsigned char calculate(
     bool under_floor_solid,
     int generation, int width, int height,
     int x, int y,
-    unsigned char *grid_in,
-    unsigned char *grid_out)
+    unsigned char * __restrict__ grid_in,
+    unsigned char * __restrict__ grid_out)
 {
     unsigned int base = (x * 374761393) ^ (y * 668265263) ^ (generation * 1274126177);
 
@@ -105,7 +105,7 @@ __device__ inline unsigned char calculate(
     grid_out[i_bottomright]     = bottomright;
 }
 
-__global__ void kernel_opt(unsigned char* grid_in, unsigned char* grid_out,
+__global__ void kernel_opt(unsigned char* __restrict__ grid_in, unsigned char* __restrict__ grid_out,
                                   int width, int height, int generation)
 {
     int phase = generation % 4;
@@ -126,10 +126,10 @@ __global__ void kernel_opt(unsigned char* grid_in, unsigned char* grid_out,
     int i_bottomleft = ((y + 1) * width) + x;
     int i_bottomright = ((y + 1) * width) + (x + 1);
     // Pointers to the 4 cells
-    unsigned char topleft = grid_in[i_topleft];
-    unsigned char topright = grid_in[i_topright];
-    unsigned char bottomleft = grid_in[i_bottomleft];
-    unsigned char bottomright = grid_in[i_bottomright];
+    unsigned char topleft = __ldg(&grid_in[i_topleft]);
+    unsigned char topright = __ldg(&grid_in[i_topright]);
+    unsigned char bottomleft = __ldg(&grid_in[i_bottomleft]);
+    unsigned char bottomright = __ldg(&grid_in[i_bottomright]);
 
     bool under_floor_solid = get_cell(grid_in, x, y + 2, width, height) >= P_WATER && get_cell(grid_in, x + 1, y + 2, width, height) >= P_WATER;
 
