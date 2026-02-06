@@ -78,7 +78,7 @@ __device__ inline unsigned char calculate(
     ifSwap(watertopright_can_go_down, &topright, &bottomright);
     ifSwap(watertopright_can_go_diag, &topright, &bottomleft);
 
-    bool water_dropped = watertopleft_can_go_down | watertopleft_can_go_diag | watertopright_can_go_down | watertopright_can_go_diag;
+    bool water_dropped = watertopleft_can_go_down || watertopleft_can_go_diag || watertopright_can_go_down || watertopright_can_go_diag;
 
     // Horizontal movement for WATER particles if they didn't drop
 
