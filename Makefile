@@ -52,17 +52,15 @@ test-o3: default-o3
 	mkdir -p output/logs/
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -t assets/references/output-sample-${SAMPLE}.sand -l statistics/sequential-o3-sample-${SAMPLE}.csv
 
-test-simd-base: LOGIC = src/simd/simd-base.cpp
-test-simd-base: default
 
 test-simd-manual-interleave: LOGIC = src/simd/simd-manual-interleave.cpp
-test-simd-manual-interleave: default
+test-simd-manual-interleave: test
 
 test-simd-manual-interleave-prefetch: LOGIC = src/simd/simd-manual-interleave-prefetch.cpp
-test-simd-manual-interleave-prefetch: default
+test-simd-manual-interleave-prefetch: test
 
-test-simd-manual-interleave-prefetch: LOGIC = src/simd/simd-manual-interleave-prefetch.cpp
-test-simd-manual-interleave-prefetch-o3: default
+test-simd-manual-interleave-prefetch-o3: LOGIC = src/simd/simd-manual-interleave-prefetch.cpp
+test-simd-manual-interleave-prefetch-o3: test-o3
 
 # Profiling for SIMD version
 performance-simd: LOGIC = src/simd/simd-manual-interleave.cpp
