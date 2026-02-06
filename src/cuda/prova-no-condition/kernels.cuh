@@ -11,13 +11,6 @@
 #define WATER_MOVE_DIAGONAL_CHANCE 0.5f
 #define WATER_MOVE_HORIZONTAL_CHANCE 0.8f
 
-#define COND_SWAP(cond, a, b) do { \
-    unsigned char mask = (unsigned char)(-(int)(cond)); \
-    unsigned char xor_val = (*(a) ^ *(b)) & mask; \
-    *(a) ^= xor_val; \
-    *(b) ^= xor_val; \
-} while(0)
-
 __global__ void kernel(unsigned char* grid_in, unsigned char* grid_out, int width, int height, int generation);
 
 #endif

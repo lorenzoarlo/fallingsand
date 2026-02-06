@@ -21,7 +21,7 @@ video: default
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
 	mkdir -p output/videos
 	rm -f output/videos/animation-${SAMPLE}.mp4
-	ffmpeg -framerate 90 -i output/images/sample-${SAMPLE}/%04d.png -c:v libx264 -crf 0 -pix_fmt yuv420p output/videos/animation-${SAMPLE}.mp4
+	ffmpeg -framerate 60 -i output/images/sample-${SAMPLE}/%04d.png -c:v libx264 -crf 0 -pix_fmt yuv420p output/videos/animation-${SAMPLE}.mp4
 # Run simulation and generate video using default logic with 1500 frames and scale 4 (useful for high-res videos)
 output_video: SCALE = 4
 output_video: FRAMES = 1500

@@ -15,6 +15,11 @@ __device__ inline float rh(unsigned int base, unsigned int seed)
     return (float)(n & 0xFFFF) / 65535.0f;
 }
 
+__device__ inline unsigned char get_cell(unsigned char *grid, int width, int height, int x, int y) {
+    if (x < 0 || y < 0 || x >= width || y >= height) return P_WALL;
+    return grid[y * width + x];
+}
+
 /**
  * Function that calculates the new state of the particle
  */
@@ -60,20 +65,20 @@ __device__ inline unsigned char calculate(
     ifSwap((!top_sand_moved_hor && topright_diagonally), &topright, &bottomleft);
 
     // TOPLEFT WATER PARTICLE
-    bool watertopleft_can_go_down = bottomleft < topleft && r2 < WATER_FALL_DENSITY_CHANCE;
-    bool watertopleft_can_go_diag = !watertopleft_can_go_down && topright < topleft && bottomright < topleft && r3 < WATER_MOVE_DIAGONAL_CHANCE;
+    bool watertopleft_can_go_down = topleft == P_WATER  && bottomleft < topleft && r2 < WATER_FALL_DENSITY_CHANCE;
+    bool watertopleft_can_go_diag = topleft == P_WATER  && !watertopleft_can_go_down && topright < topleft && bottomright < topleft && r3 < WATER_MOVE_DIAGONAL_CHANCE;
 
-    ifSwap(topleft == P_WATER && watertopleft_can_go_down, &topleft, &bottomleft);
-    ifSwap(topleft == P_WATER && watertopleft_can_go_diag, &topleft, &bottomright);
+    ifSwap(watertopleft_can_go_down, &topleft, &bottomleft);
+    ifSwap(watertopleft_can_go_diag, &topleft, &bottomright);
 
     // TOPRIGHT WATER PARTICLE
-    bool watertopright_can_go_down = bottomright < topright && r2 < WATER_FALL_DENSITY_CHANCE;
-    bool watertopright_can_go_diag = !watertopright_can_go_down && topleft < topright && bottomleft < topright && r3 < WATER_MOVE_DIAGONAL_CHANCE;
+    bool watertopright_can_go_down = topright == P_WATER && bottomright < topright && r2 < WATER_FALL_DENSITY_CHANCE;
+    bool watertopright_can_go_diag = topright == P_WATER && !watertopright_can_go_down && topleft < topright && bottomleft < topright && r3 < WATER_MOVE_DIAGONAL_CHANCE;
 
-    ifSwap(topright == P_WATER && watertopright_can_go_down, &topright, &bottomright);
-    ifSwap(topright == P_WATER && watertopright_can_go_diag, &topright, &bottomleft);
+    ifSwap(watertopright_can_go_down, &topright, &bottomright);
+    ifSwap(watertopright_can_go_diag, &topright, &bottomleft);
 
-    bool water_dropped = watertopleft_can_go_down || watertopleft_can_go_diag || watertopright_can_go_down || watertopright_can_go_diag;
+    bool water_dropped = watertopleft_can_go_down | watertopleft_can_go_diag | watertopright_can_go_down | watertopright_can_go_diag;
 
     // Horizontal movement for WATER particles if they didn't drop
 
@@ -95,8 +100,8 @@ __device__ inline unsigned char calculate(
 
     int mask_y = -y;          // Mask for y
     int not_mask_y = ~mask_y; // Mask for NOT y
-    int a = 0;
-    // Combinazione diretta
+    
+    // Lookup table for the 2x2 block, using bitwise operations to select the correct value based on local_x and local_y
     return (topleft & not_mask_x & not_mask_y) |
            (topright & mask_x & not_mask_y) |
            (bottomleft & not_mask_x & mask_y) |
@@ -127,12 +132,18 @@ __global__ void kernel(unsigned char *grid_in, unsigned char *grid_out, int widt
     int local_y = shifted_y % 2; // 0 = top, 1 = bottom
 
     // Coordinates of topleft of the 2x2 block
-    int anchor_x = x - local_x;
-    int anchor_y = y - local_y;
+    /*int anchor_x = x - local_x;
+    int anchor_y = y - local_y;*/
+
+    int anchor_x = ((x - offset_x) / 2) * 2 + offset_x;
+    int anchor_y = ((y - offset_y) / 2) * 2 + offset_y;
 
     // Check bounds for the 2x2 block
-    if (anchor_x + 1 >= width || anchor_y + 1 >= height)
+    if (anchor_x + 1 >= width || anchor_y + 1 >= height) 
         return;
+
+    local_x = x - anchor_x;
+    local_y = y - anchor_y;
 
     // Calculates cell values
     unsigned char topleft = grid_in[anchor_y * width + anchor_x];
@@ -142,9 +153,9 @@ __global__ void kernel(unsigned char *grid_in, unsigned char *grid_out, int widt
 
     bool under_floor_solid = (anchor_y + 2 >= height || (grid_in[(anchor_y + 2) * width + anchor_x] >= P_WATER && grid_in[(anchor_y + 2) * width + anchor_x + 1] >= P_WATER));
 
-    if (!(topleft == topright && bottomleft == bottomright && topleft == bottomleft))
-    {
+    /*if (!(topleft == topright && bottomleft == bottomright && topleft == bottomleft))
+    {*/
         grid_out[y * width + x] = calculate(topleft, topright, bottomleft, bottomright, under_floor_solid,
                                             generation, width, height, local_x, local_y, anchor_x, anchor_y, grid_in, grid_out);
-    }
+    //}
 }
