@@ -1,10 +1,10 @@
 # Default parameters values
-FRAMES ?= 100
+FRAMES ?= 1500
 SCALE ?= 1
 SAMPLE ?= 1
 LOGIC ?= src/logic.c
-CUDA_ARCHITECTURES ?= 75
-
+CUDA_ARCHITECTURES ?= 75 # Needed by CUDA to compile for specific GPU architectures
+FRAMERATE=120
 # Default target
 default:
 	cmake -B build -DSIMULATION_LOGIC="${LOGIC}"
@@ -12,6 +12,16 @@ default:
 default-o3: 
 	cmake -B build -DSIMULATION_LOGIC="${LOGIC}" -DCMAKE_BUILD_TYPE=Release
 	cmake --build build
+
+generate-references: LOGIC = src/logic.c
+generate-references: default
+	mkdir -p assets
+	mkdir -p assets/references/
+	mkdir -p assets/logs/
+	./build/bin/fallingsand assets/sample-1.sand assets/references/output-sample-1.sand 1500 -l assets/logs/base-performance-1.csv
+	./build/bin/fallingsand assets/sample-2.sand assets/references/output-sample-2.sand 1500 -l assets/logs/base-performance-2.csv
+	./build/bin/fallingsand assets/sample-3.sand assets/references/output-sample-3.sand 3000 -l assets/logs/base-performance-3.csv
+
 # Run simulation and generate video logic
 video: default
 	mkdir -p output
@@ -21,126 +31,69 @@ video: default
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.csv
 	mkdir -p output/videos
 	rm -f output/videos/animation-${SAMPLE}.mp4
-	ffmpeg -framerate 60 -i output/images/sample-${SAMPLE}/%04d.png -c:v libx264 -crf 0 -pix_fmt yuv420p output/videos/animation-${SAMPLE}.mp4
-# Run simulation and generate video using default logic with 1500 frames and scale 4 (useful for high-res videos)
-output_video: SCALE = 4
-output_video: FRAMES = 1500
-output_video: video
+	ffmpeg -framerate ${FRAMERATE} -i output/images/sample-${SAMPLE}/%04d.png -c:v libx264 -crf 0 -pix_fmt yuv420p output/videos/animation-${SAMPLE}.mp4
+
 
 capture-original: LOGIC = src/utility/freeze.c
 capture-original: default
 	mkdir -p output
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 10 -oi output/images/sample-${SAMPLE}/ -s 4 -l /dev/null
 
-
 # Run simulation and compare output with reference solution (without image output)
 test: default
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -t assets/references/output-sample-${SAMPLE}.sand -l statistics/sequential-sample-${SAMPLE}.csv
 
 test-o3: default-o3
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -t assets/references/output-sample-${SAMPLE}.sand -l statistics/sequential-o3-sample-${SAMPLE}.csv
 
+test-simd-base: LOGIC = src/simd/simd-base.cpp
+test-simd-base: default
 
-test-simd: LOGIC = src/simd/simd-optimized.cpp
-test-simd: default
-	mkdir -p output
-	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
+test-simd-manual-interleave: LOGIC = src/simd/simd-manual-interleave.cpp
+test-simd-manual-interleave: default
 
+test-simd-manual-interleave-prefetch: LOGIC = src/simd/simd-manual-interleave-prefetch.cpp
+test-simd-manual-interleave-prefetch: default
 
-test-simd-o3: LOGIC = src/simd/simd-optimized.cpp
-test-simd-o3: default-o3
-	mkdir -p output
-	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
+test-simd-manual-interleave-prefetch: LOGIC = src/simd/simd-manual-interleave-prefetch.cpp
+test-simd-manual-interleave-prefetch-o3: default
 
-test-simd-manual: LOGIC = src/simd/simd-optimized-manual-shuffle.cpp
-test-simd-manual: default
-	mkdir -p output
-	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
-
-
-test-simd-manual-o3: LOGIC = src/simd/simd-optimized.cpp
-test-simd-manual-o3: default-o3
-	mkdir -p output
-	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
-
-test-simd-manual-prefetch: LOGIC = src/simd/simd-optimized-manual-prefetch.cpp
-test-simd-manual-prefetch: default
-	mkdir -p output
-	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
-
-
-test-simd-manual-prefetch-o3: LOGIC = src/simd/simd-optimized-manual-prefetch.cpp
-test-simd-manual-prefetch-o3: default-o3
-	mkdir -p output
-	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
-
-video-simd: LOGIC = src/simd/simd-optimized.cpp
-video-simd: default
-	mkdir -p output
-	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -oi output/images/sample-${SAMPLE}/  -l output/logs/sample-${SAMPLE}-performance.csv
-
-performance-simd: LOGIC = src/simd/simd-optimized.cpp
+# Profiling for SIMD version
+performance-simd: LOGIC = src/simd/simd-manual-interleave.cpp
 performance-simd: default
 	mkdir -p output
 	mkdir -p output/logs/
 	xcrun xctrace record --template "Time Profiler" --output simulazione.trace --launch -- ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.csv 
 
 # Base CUDA target
-default_cuda: 
+default-cuda: 
 	cmake -B build -DENABLE_CUDA=ON -DCMAKE_CUDA_COMPILER=/usr/bin/nvcc -DSIMULATION_LOGIC=${LOGIC} -DCUDA_ARCH=${CUDA_ARCHITECTURES}
 	cmake --build build
-default_test_cuda: default_cuda
+test-cuda: default-cuda
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/cuda-sample-${SAMPLE}-performance.csv
 
-default_testdiff_cuda: default_cuda
+cuda-profiling: default-cuda
 	mkdir -p output
+	mkdir -p output/ncu-reports/
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -s ${SCALE} -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv -oi output/images/sample-${SAMPLE}/
+	ncu --set full --section SpeedOfLight_RooflineChart -o "output/ncu-reports/ncu-report-sample-${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -s ${SCALE} -l /dev/null
 
-default_performance_ncu: default_cuda
-	mkdir -p output
-	mkdir -p output/ncu_reports/
-	mkdir -p output/logs/
-	ncu --set full --section SpeedOfLight_RooflineChart -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
-
-default_performance_nvprof: default_cuda
-	mkdir -p output
-	mkdir -p output/ncu_reports/
-	mkdir -p output/logs/
-	rm -f output/images/sample-${SAMPLE}-*.png
-	mkdir -p output/images/sample-${SAMPLE}
-	nvprof --metrics achieved_occupancy,ipc,warp_execution_efficiency,gld_efficiency,gst_efficiency -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.csv
-
-video_cuda: default_cuda
+video-cuda: default-cuda
 	mkdir -p output
 	rm -f output/images/sample-${SAMPLE}-*.png
 	mkdir -p output/images/sample-${SAMPLE}
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.csv
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l /dev/null
 	mkdir -p output/videos
 	rm -f output/videos/animation-${SAMPLE}.mp4
-	ffmpeg -framerate 60 -i output/images/sample-${SAMPLE}/%04d.png -c:v libx264 -pix_fmt yuv420p output/videos/animation-${SAMPLE}.mp4
+	ffmpeg -framerate ${FRAMERATE} -i output/images/sample-${SAMPLE}/%04d.png -c:v libx264 -crf 0 -pix_fmt yuv420p output/videos/animation-${SAMPLE}.mp4
 
-references: LOGIC = src/logic.c
-references: default
-	mkdir -p assets
-	mkdir -p assets/references/
-	mkdir -p assets/logs/
-	./build/bin/fallingsand assets/sample-1.sand assets/references/output-sample-1.sand 1500 -l assets/logs/base-performance-1.csv
-	./build/bin/fallingsand assets/sample-2.sand assets/references/output-sample-2.sand 1500 -l assets/logs/base-performance-2.csv
 
 # Clean build artifacts 
 clean:

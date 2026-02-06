@@ -1,5 +1,4 @@
 #include <hwy/highway.h>
-#include <hwy/cache_control.h>
 #include "../simulation.h"
 #include "../utility/utility-functions.h" // For probability constant and definitions
 
@@ -64,7 +63,7 @@ HWY_INLINE hn::Mask<D> RandomMask(D d, size_t x, size_t y, size_t lanes, float p
 void inline Logic(const hn::ScalableTag<uint8_t> d,
                   uint8_t *toprow_address,
                   uint8_t *bottomrow_address,
-                  uint8_t *floorrow_address,
+                  uint8_t*floorrow_address,
                   size_t width, size_t offset_x, size_t y, size_t lanes, int generation)
 {
     // alias for Vec type of d
@@ -74,61 +73,29 @@ void inline Logic(const hn::ScalableTag<uint8_t> d,
     const auto WATER = hn::Set(d, P_WATER);
     const auto WALL = hn::Set(d, P_WALL);
 
-    const size_t prefetch_distance = (2 * lanes) * 4;
     for (size_t x = 0; x <= width - (2 * lanes); x += (2 * lanes))
     {
-        if (x + prefetch_distance < width)
-        {
-            // Precarichiamo i dati che useremo tra 4 iterazioni
-            hwy::Prefetch(toprow_address + x + prefetch_distance);
-            hwy::Prefetch(bottomrow_address + x + prefetch_distance);
-            if (floorrow_address)
-            {
-                hwy::Prefetch(floorrow_address + x + prefetch_distance);
-            }
-        }
-
         size_t absolute_x = x + offset_x;
-
-        // first lane
-        auto toprow = hn::LoadU(d, toprow_address + x);
-        auto bottomrow = hn::LoadU(d, bottomrow_address + x);
-
-        // second lane
-        auto toprow2nd = hn::LoadU(d, toprow_address + x + lanes);
-        auto bottomrow2nd = hn::LoadU(d, bottomrow_address + x + lanes);
-
-        // verify if equals
-        auto rows_equal = hn::Eq(toprow, bottomrow);
-        auto rows2nd_equal = hn::Eq(toprow2nd, bottomrow2nd);
-
-        // verify if couple blocks are equals
-        auto toprow_swapped = hn::Shuffle01(toprow);
-        auto toprow2nd_swapped = hn::Shuffle01(toprow2nd);
-
-        // Verify if [a0, a1, ...] = [a1, a0, ...]
-        auto shuffledequal = hn::Eq(toprow, toprow_swapped);
-        auto shuffledequal2nd = hn::Eq(toprow2nd, toprow2nd_swapped);
-
-        auto block_equals = hn::And(rows_equal, hn::And(rows2nd_equal, hn::And(shuffledequal, shuffledequal2nd)));
-
-        // If all cells are the same, skip processing
-        if (hn::AllTrue(d, block_equals))
-        {
-            continue;
-        }
-
         // Loading interleaved data for the 2 rows. We get 4 vectors:
         // TL, TR, BL, BR
         // TL = toprow[0], toprow[2], toprow[4], ...
         // TR = toprow[1], toprow[3], toprow[5],
         V toplefts, toprights, bottomlefts, bottomrights;
+        hn::LoadInterleaved2(d, toprow_address + x, toplefts, toprights);
+        hn::LoadInterleaved2(d, bottomrow_address + x, bottomlefts, bottomrights);
 
-        // Before toprow2nd because inserts before the 3rd argument
-        toplefts = hn::ConcatEven(d, toprow2nd, toprow);
-        toprights = hn::ConcatOdd(d, toprow2nd, toprow);
-        bottomlefts = hn::ConcatEven(d, bottomrow2nd, bottomrow);
-        bottomrights = hn::ConcatOdd(d, bottomrow2nd, bottomrow);
+        auto all_equal_left = hn::Eq(toplefts, bottomlefts);
+        auto all_equal_right = hn::Eq(toprights, bottomrights);
+        auto top_equal = hn::Eq(toplefts, toprights);
+        auto all_same = hn::And(hn::And(all_equal_left, all_equal_right), top_equal);
+
+        // If all cells are the same, skip processing
+        if (hn::AllTrue(d, all_same))
+        {
+            continue;
+        }
+
+        // Horizontal sand movement logic
 
         // Compare every topleft and toprights to sand (to understand if they are sand and they can swap)
         auto topleft_is_sand = hn::Eq(toplefts, SAND);
@@ -156,27 +123,6 @@ void inline Logic(const hn::ScalableTag<uint8_t> d,
         // Swap if both conditions are met
         IfSwap(d, topcanswaphorizontally, toplefts, toprights);
 
-        // if (!top_moved && *topleft == P_SAND)
-        //     {
-        //         // Can fall down?
-        //         if (*bottomleft < P_SAND)
-        //         {
-        //             if (random_hash(x, y, generation, 1) < WATER_FALL_DOWN_CHANCE)
-        //             {
-        //                 swap(topleft, bottomleft);
-        //             }
-        //         }
-        //         // Can fall diagonally?
-        //         else if (*topright < P_SAND && *bottomright < P_SAND)
-        //         {
-        //             swap(topleft, bottomright);
-        //         }
-        //     }
-        // In quali casi dobbiamo scambiare?
-        // La prima condizione è che topleft sia SAND e che non si sia mosso.
-        // A questo punto abbiamo due possibilità:
-        // - bottomleft è più leggero di topleft e randomhash < WATER_FALL_DOWN_CHANCHE (può cadere dritto)
-        // - bottomleft è più pesante di topleft, topright è più leggero della sabbia e  bottomright è più leggero della sabbia (può cadere diagonalmente)
 
         // To verify that sand has not already swapped horizontally
         auto sand_not_already_swapped = hn::Not(topcanswaphorizontally); // if it has moved horizontally, it cannot fall vertically
@@ -214,27 +160,9 @@ void inline Logic(const hn::ScalableTag<uint8_t> d,
 
         auto randommask_watermove_vertical = RandomMask(d, absolute_x, y, lanes, WATER_FALL_DENSITY_CHANCE, generation, 2);
         auto randommask_watermove_diagonal = RandomMask(d, absolute_x, y, lanes, WATER_MOVE_DIAGONAL_CHANCE, generation, 3);
+        
         // Manage TOPLEFT if WATER
         auto topleft_is_water = hn::Eq(toplefts, WATER);
-
-        // if (*topleft == P_WATER)
-        // {
-        //     // Is the cell below lower density?
-        //     if (*bottomleft < *topleft && random_hash(x, y, generation, 2) < WATER_FALL_DENSITY_CHANCE)
-        //     {
-        //         swap(topleft, bottomleft);
-        //         drop_left = 1;
-        //     }
-        //     // Can move diagonally?
-        //     else if (*topright < *topleft && *bottomright < *topleft && random_hash(x, y, generation, 3) < WATER_MOVE_DIAGONAL_CHANCE)
-        //     {
-        //         swap(topleft, bottomright);
-        //         drop_left = 1;
-        //     }
-        // }
-        // L'acqua cade se:
-        // - verticalmente, la cella sotto è di densità inferiore e randomhash < WATER_FALL_DENSITY_CHANCE
-        // - diagonalmente se NON è caduta verticalmente, se topright e bottomright sono di densità inferiore e randomhash < WATER_MOVE_DIAGONAL_CHANCE
 
         auto waterbelow_lighter_left = hn::Lt(bottomlefts, toplefts);
         auto topleftwater_can_fall_vertical = hn::And(topleft_is_water, hn::And(waterbelow_lighter_left, randommask_watermove_vertical));

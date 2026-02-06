@@ -29,10 +29,11 @@ __device__ inline unsigned char calculate(
     bool under_floor_solid,
     int generation, int width, int height,
     int x, int y,
+    int anchor_x, int anchor_y,
     unsigned char *grid_in,
     unsigned char *grid_out)
 {
-    unsigned int base = (x * 374761393) ^ (y * 668265263) ^ (generation * 1274126177);
+    unsigned int base = (anchor_x * 374761393) ^ (anchor_y * 668265263) ^ (generation * 1274126177);
 
     float r0 = rh(base, 0);
     float r1 = rh(base, 1);
@@ -50,14 +51,14 @@ __device__ inline unsigned char calculate(
     ifSwap(top_sand_moved_hor, &topleft, &topright);
 
     // TOPLEFT
-    bool topleft_can_fall_vertical = (topleft == P_SAND && bottomleft < P_SAND && r1 < WATER_FALL_DOWN_CHANCE);
+    bool topleft_can_fall_vertical = (topleft == P_SAND && bottomleft < P_SAND && r1 < SAND_FALL_DOWN_CHANCE);
     bool topleft_diagonally = (topleft == P_SAND && bottomleft >= P_SAND && topright < P_SAND && bottomright < P_SAND);
 
     ifSwap((!top_sand_moved_hor && topleft_can_fall_vertical), &topleft, &bottomleft);
     ifSwap((!top_sand_moved_hor && topleft_diagonally), &topleft, &bottomright);
 
     // TOPRIGHT
-    bool topright_can_fall_vertical = (topright == P_SAND && bottomright < P_SAND && r1 < WATER_FALL_DOWN_CHANCE);
+    bool topright_can_fall_vertical = (topright == P_SAND && bottomright < P_SAND && r1 < SAND_FALL_DOWN_CHANCE);
     bool topright_diagonally = (topright == P_SAND && bottomleft < P_SAND && topleft < P_SAND && bottomright >= P_SAND);
 
     ifSwap((!top_sand_moved_hor && topright_can_fall_vertical), &topright, &bottomright);
@@ -94,46 +95,67 @@ __device__ inline unsigned char calculate(
 
     ifSwap((bottom_can_move_horizontally && (under_floor_solid || r5 < WATER_MOVE_HORIZONTAL_CHANCE)), &bottomleft, &bottomright);
 
-    int i_topleft       = (y * width) + x;
-    int i_topright      = (y * width) + (x + 1);
-    int i_bottomleft    = ((y + 1) * width) + x;
-    int i_bottomright   = ((y + 1) * width) + (x + 1);
+    int mask_x = -x;          // Mask for x
+    int not_mask_x = ~mask_x; // Mask for NOT x
 
-    grid_out[i_topleft]         = topleft;
-    grid_out[i_topright]        = topright;
-    grid_out[i_bottomleft]      = bottomleft;
-    grid_out[i_bottomright]     = bottomright;
+    int mask_y = -y;          // Mask for y
+    int not_mask_y = ~mask_y; // Mask for NOT y
+    
+    // Lookup table for the 2x2 block, using bitwise operations to select the correct value based on local_x and local_y
+    return (topleft & not_mask_x & not_mask_y) |
+           (topright & mask_x & not_mask_y) |
+           (bottomleft & not_mask_x & mask_y) |
+           (bottomright & mask_x & mask_y);
 }
 
-__global__ void kernel_opt(unsigned char* grid_in, unsigned char* grid_out,
-                                  int width, int height, int generation)
+// make default_test_cuda FRAMES=1500 SCALE=1 SAMPLE=2 LOGIC=src/cuda/prova-no-condition
+__global__ void kernel(unsigned char *grid_in, unsigned char *grid_out, int width, int height, int generation)
 {
     int phase = generation % 4;
     int offset_x = (phase == 1 || phase == 3);
     int offset_y = (phase == 1 || phase == 2);
 
-    int tid_x = blockIdx.x * blockDim.x + threadIdx.x;
-    int tid_y = blockIdx.y * blockDim.y + threadIdx.y;
+    // Absolute coordinates
+    int x = (blockIdx.x * blockDim.x + threadIdx.x);
+    int y = (blockIdx.y * blockDim.y + threadIdx.y);
 
-    int x = tid_x * 2 + offset_x;
-    int y = tid_y * 2 + offset_y;
+    // Shifting coordinates according to the phase
+    int shifted_x = x - offset_x;
+    int shifted_y = y - offset_y;
 
-    if(x >= width-1 || y >= height-1) return;
+    // Check bounds
+    if (shifted_x < 0 || shifted_y < 0 || x >= width || y >= height)
+        return;
 
+    // local positions within the 2x2 block
+    int local_x = shifted_x % 2; // 0 = left, 1 = right
+    int local_y = shifted_y % 2; // 0 = top, 1 = bottom
 
-    int i_topleft = (y * width) + x;
-    int i_topright = (y * width) + (x + 1);
-    int i_bottomleft = ((y + 1) * width) + x;
-    int i_bottomright = ((y + 1) * width) + (x + 1);
-    // Pointers to the 4 cells
-    unsigned char topleft = grid_in[i_topleft];
-    unsigned char topright = grid_in[i_topright];
-    unsigned char bottomleft = grid_in[i_bottomleft];
-    unsigned char bottomright = grid_in[i_bottomright];
+    // Coordinates of topleft of the 2x2 block
+    /*int anchor_x = x - local_x;
+    int anchor_y = y - local_y;*/
 
-    bool under_floor_solid = get_cell(grid_in, x, y + 2, width, height) >= P_WATER && get_cell(grid_in, x + 1, y + 2, width, height) >= P_WATER;
+    int anchor_x = ((x - offset_x) / 2) * 2 + offset_x;
+    int anchor_y = ((y - offset_y) / 2) * 2 + offset_y;
 
-    if(!(topleft == topright && bottomleft == bottomright && topleft == bottomleft))
-        calculate(topleft, topright, bottomleft, bottomright, under_floor_solid,
-                  generation, width, height, x, y, grid_in, grid_out);
+    // Check bounds for the 2x2 block
+    if (anchor_x + 1 >= width || anchor_y + 1 >= height) 
+        return;
+
+    local_x = x - anchor_x;
+    local_y = y - anchor_y;
+
+    // Calculates cell values
+    unsigned char topleft = grid_in[anchor_y * width + anchor_x];
+    unsigned char topright = grid_in[anchor_y * width + anchor_x + 1];
+    unsigned char bottomleft = grid_in[(anchor_y + 1) * width + anchor_x];
+    unsigned char bottomright = grid_in[(anchor_y + 1) * width + anchor_x + 1];
+
+    bool under_floor_solid = (anchor_y + 2 >= height || (grid_in[(anchor_y + 2) * width + anchor_x] >= P_WATER && grid_in[(anchor_y + 2) * width + anchor_x + 1] >= P_WATER));
+
+    /*if (!(topleft == topright && bottomleft == bottomright && topleft == bottomleft))
+    {*/
+        grid_out[y * width + x] = calculate(topleft, topright, bottomleft, bottomright, under_floor_solid,
+                                            generation, width, height, local_x, local_y, anchor_x, anchor_y, grid_in, grid_out);
+    //}
 }

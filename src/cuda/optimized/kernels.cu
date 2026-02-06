@@ -65,7 +65,7 @@ __global__ void kernel(unsigned char* grid_in, unsigned char* grid_out, int widt
         // Can fall down?
         if (bottomleft < P_SAND)
         {
-            if (r1 < WATER_FALL_DOWN_CHANCE)
+            if (r1 < SAND_FALL_DOWN_CHANCE)
             {
                 temp = topleft;
                 topleft = bottomleft;
@@ -86,7 +86,7 @@ __global__ void kernel(unsigned char* grid_in, unsigned char* grid_out, int widt
         // Can fall down
         if (bottomright < P_SAND)
         {
-            if (r1 < WATER_FALL_DOWN_CHANCE)
+            if (r1 < SAND_FALL_DOWN_CHANCE)
             {
                 temp = topright;
                 topright = bottomright;

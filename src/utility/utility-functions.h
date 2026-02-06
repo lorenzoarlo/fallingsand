@@ -84,7 +84,7 @@ static inline void blocklogic(int x, int y, Universe *u, unsigned char *cells, i
         // Can fall down?
         if (*bottomleft < P_SAND)
         {
-            if (random_hash(x, y, generation, 1) < WATER_FALL_DOWN_CHANCE)
+            if (random_hash(x, y, generation, 1) < SAND_FALL_DOWN_CHANCE)
             {
                 swap(topleft, bottomleft);
             }
@@ -102,7 +102,7 @@ static inline void blocklogic(int x, int y, Universe *u, unsigned char *cells, i
         // Can fall down
         if (*bottomright < P_SAND)
         {
-            if (random_hash(x, y, generation, 1) < WATER_FALL_DOWN_CHANCE)
+            if (random_hash(x, y, generation, 1) < SAND_FALL_DOWN_CHANCE)
             {
                 swap(topright, bottomright);
             }
