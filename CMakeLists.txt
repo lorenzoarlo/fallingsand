@@ -25,7 +25,16 @@ list(REMOVE_ITEM CORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/logic.c")
 if(ENABLE_CUDA)
     message(STATUS "CUDA ENABLED")
     enable_language(CUDA)
-    file(GLOB CUDA_SOURCES "src/cuda/naive-algorithm/*.cu")
+    if(NOT DEFINED CUDA_ARCH)
+        set(CMAKE_CUDA_ARCHITECTURES "75")
+    else()
+        set(CMAKE_CUDA_ARCHITECTURES ${CUDA_ARCH})
+    endif()
+    if(NOT DEFINED SIMULATION_LOGIC OR SIMULATION_LOGIC MATCHES "^.+\.c$")
+        set(SIMULATION_LOGIC "src/cuda/super-optimized")
+    endif()
+    message(STATUS "Compiling with LOGIC=${SIMULATION_LOGIC}")
+    file(GLOB CUDA_SOURCES "${SIMULATION_LOGIC}/*.cu")
     add_executable(fallingsand
         ${CORE_SOURCES}
         ${CUDA_SOURCES}
