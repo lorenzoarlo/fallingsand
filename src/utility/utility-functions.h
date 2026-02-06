@@ -1,15 +1,19 @@
-#define SAND_NOISE_CHANCE 0.4f
-#define WATER_FALL_DOWN_CHANCE 0.9f
-#define WATER_FALL_DENSITY_CHANCE 1.0f
-#define WATER_MOVE_DIAGONAL_CHANCE 0.5f
-#define WATER_MOVE_HORIZONTAL_CHANCE 0.8f
+
+
+/**
+ * Base hash function for random number generation
+ */
+static inline int random_hash_base(int x, int y, int frame)
+{
+    return (x * 374761393) ^ (y * 668265263) ^ (frame * 1274126177);
+}
 
 /**
  * Pseudo random function based on hash but deterministic
  */
 static inline float random_hash(int x, int y, int frame, int salt)
 {
-    unsigned int n = (x * 374761393) ^ (y * 668265263) ^ (frame * 1274126177) ^ (salt * 387413);
+    unsigned int n = random_hash_base(x, y, frame) ^ (salt * 387413);
     n = (n ^ (n >> 13)) * 1274126177;
     return (float)(n & 0xFFFF) / 65535.0f;
 }
@@ -159,7 +163,7 @@ static inline void blocklogic(int x, int y, Universe *u, unsigned char *cells, i
     }
 
     int bottomwater_can_move_horizontally = (*bottomleft == P_WATER && *bottomright < P_WATER ||
-                                        *bottomleft < P_WATER && *bottomright == P_WATER);
+                                             *bottomleft < P_WATER && *bottomright == P_WATER);
     // Look if there is solid floor below
     int floor_is_solid = get_cell(u, x, y + 2) >= P_WATER && get_cell(u, x + 1, y + 2) >= P_WATER;
 

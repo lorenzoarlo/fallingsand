@@ -49,3 +49,5 @@ assets/references/
 assets/videos/
 assets/logs/
 simulazione.trace
+
+**/*.drawio.**
