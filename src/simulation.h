@@ -23,7 +23,6 @@ extern "C" {
  * @param universe Pointer to the current Universe state.
  * @param out Pointer to the Universe where the next state will be stored.
  * @param generation The current generation index (0-based).
- * @return Pointer to a newly allocated Universe representing the next state.
  * The caller is responsible for destroying the returned Universe.
  */
 void next(Universe* universe, Universe* out, int generation);

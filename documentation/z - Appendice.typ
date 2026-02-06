@@ -1,14 +1,9 @@
-#include "simulation.h"
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
 
-#include "utility/utility-functions.h"
+= Appendice <appendice>
 
+== Codice implementazione sequenziale base
 
-/**
- * Compute the next generation of the universe
- */
+```cpp
 void next(Universe *u, Universe *out, int generation)
 {
 
@@ -30,3 +25,4 @@ void next(Universe *u, Universe *out, int generation)
         }
     }
 }
+```

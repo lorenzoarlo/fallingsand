@@ -22,6 +22,7 @@
 
 #include "title-page.typ"
 
+#pagebreak()
 
 #show outline.entry.where(
   level: 1,
@@ -81,19 +82,6 @@
 #show heading.where(level: 6): it => [#it.body #h(1em)]
 #show heading.where(level: 6): set text(size: 12pt, fill: rgb("#007ec7"))
 
-#set page(
-  header: [#align(right)[#emph[#title]]],
-  footer: context table(
-    stroke: none,
-    columns: (33.3%, 33.4%, 33.3%),
-    [],
-    [#align(center)[
-      #counter(page).display()
-    ]],
-    [
-      #align(right)[versione #version]
-    ],
-  ),
-)
 
 #include "document-flow.typ"
+

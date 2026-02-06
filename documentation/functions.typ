@@ -1,1 +1,1 @@
-#let title = "Ottimizzazione simulazione Falling Sand"
+#let title = "Progetto di Sistemi di elaborazione accelerata"

@@ -2,16 +2,28 @@
 #set align(center)
 
 
-#text(size: 24pt)[
+#text(size: 20pt)[
   *#title*
 ]
 
-#v(12pt)
+#v(10pt)
 
-#v(12pt)
+#text(size: 16pt)[
+  Sistemi ad elaborazione accelerata
+]
+
+#v(10pt)
+
 
 #text(size: 14pt)[
-  Sistemi di elaborazione accelerata - Anno accademico 2025/2026
+  Lorenzo Arlotti - Pierluca Pevere
+]
+
+#v(10pt)
+
+
+#text(size: 14pt)[
+  Anno accademico 2025/2026
 ]
 
 #v(3em)
