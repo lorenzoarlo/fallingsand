@@ -17,7 +17,7 @@ video: default
 	rm -f output/images/sample-${SAMPLE}-*.png
 	mkdir -p output/images/sample-${SAMPLE}
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.csv
 	mkdir -p output/videos
 	rm -f output/videos/animation-${SAMPLE}.mp4
 	ffmpeg -framerate 90 -i output/images/sample-${SAMPLE}/%04d.png -c:v libx264 -crf 0 -pix_fmt yuv420p output/videos/animation-${SAMPLE}.mp4
@@ -36,64 +36,64 @@ capture-original: default
 test: default
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv
 
 test-o3: default-o3
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
 
 
 test-simd: LOGIC = src/simd/simd-optimized.cpp
 test-simd: default
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
 
 
 test-simd-o3: LOGIC = src/simd/simd-optimized.cpp
 test-simd-o3: default-o3
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
 
 test-simd-manual: LOGIC = src/simd/simd-optimized-manual-shuffle.cpp
 test-simd-manual: default
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
 
 
 test-simd-manual-o3: LOGIC = src/simd/simd-optimized.cpp
 test-simd-manual-o3: default-o3
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
 
 test-simd-manual-prefetch: LOGIC = src/simd/simd-optimized-manual-prefetch.cpp
 test-simd-manual-prefetch: default
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
 
 
 test-simd-manual-prefetch-o3: LOGIC = src/simd/simd-optimized-manual-prefetch.cpp
 test-simd-manual-prefetch-o3: default-o3
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log 
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv 
 
 video-simd: LOGIC = src/simd/simd-optimized.cpp
 video-simd: default
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -oi output/images/sample-${SAMPLE}/  -l output/logs/sample-${SAMPLE}-performance.log
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -oi output/images/sample-${SAMPLE}/  -l output/logs/sample-${SAMPLE}-performance.csv
 
 performance-simd: LOGIC = src/simd/simd-optimized.cpp
 performance-simd: default
 	mkdir -p output
 	mkdir -p output/logs/
-	xcrun xctrace record --template "Time Profiler" --output simulazione.trace --launch -- ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log 
+	xcrun xctrace record --template "Time Profiler" --output simulazione.trace --launch -- ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.csv 
 
 # Base CUDA target
 default_cuda: 
@@ -102,18 +102,18 @@ default_cuda:
 default_test_cuda: default_cuda
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv
 
 default_testdiff_cuda: default_cuda
 	mkdir -p output
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -s ${SCALE} -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.log -oi output/images/sample-${SAMPLE}/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 1500 -s ${SCALE} -t assets/references/output-sample-${SAMPLE}.sand -l output/logs/sample-${SAMPLE}-performance.csv -oi output/images/sample-${SAMPLE}/
 
 default_performance_ncu: default_cuda
 	mkdir -p output
 	mkdir -p output/ncu_reports/
 	mkdir -p output/logs/
-	ncu  --set full -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
+	ncu  --set full -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.csv
 
 default_performance_nvprof: default_cuda
 	mkdir -p output
@@ -121,14 +121,14 @@ default_performance_nvprof: default_cuda
 	mkdir -p output/logs/
 	rm -f output/images/sample-${SAMPLE}-*.png
 	mkdir -p output/images/sample-${SAMPLE}
-	nvprof --metrics achieved_occupancy,ipc,warp_execution_efficiency,gld_efficiency,gst_efficiency -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
+	nvprof --metrics achieved_occupancy,ipc,warp_execution_efficiency,gld_efficiency,gst_efficiency -o "output/ncu_reports/ncu_report_sample${SAMPLE}" ./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.csv
 
 video_cuda: default_cuda
 	mkdir -p output
 	rm -f output/images/sample-${SAMPLE}-*.png
 	mkdir -p output/images/sample-${SAMPLE}
 	mkdir -p output/logs/
-	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.log
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -oi output/images/sample-${SAMPLE}/ -s ${SCALE} -l output/logs/sample-${SAMPLE}-performance.csv
 	mkdir -p output/videos
 	rm -f output/videos/animation-${SAMPLE}.mp4
 	ffmpeg -framerate 60 -i output/images/sample-${SAMPLE}/%04d.png -c:v libx264 -pix_fmt yuv420p output/videos/animation-${SAMPLE}.mp4
@@ -152,6 +152,6 @@ clean_output:
 	rm -rf output/images/**/*.png
 	rm -rf output/images/**/*.ppm 
 	rm -rf output/videos/*.mp4
-	rm -rf output/logs/*.log
+	rm -rf output/logs/*.csv
 # Clean all
 clean_all: clean clean_output

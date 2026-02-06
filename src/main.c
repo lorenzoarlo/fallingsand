@@ -264,6 +264,7 @@ int main(int argc, char *argv[])
         fclose(output_file);
         exit(GENERIC_ERROR);
     }
+    fwrite("frame;start;end;cycles\n", performance_file);
 
     uint64_t start, end;
     Universe *next_universe = universe_create(width, height);
