@@ -42,11 +42,13 @@ capture-original: default
 # Run simulation and compare output with reference solution (without image output)
 test: default
 	mkdir -p output
+	mkdir -p statistics
 	mkdir -p output/logs/
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -t assets/references/output-sample-${SAMPLE}.sand -l statistics/sequential-sample-${SAMPLE}.csv
 
 test-o3: default-o3
 	mkdir -p output
+	mkdir -p statistics
 	mkdir -p output/logs/
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -t assets/references/output-sample-${SAMPLE}.sand -l statistics/sequential-o3-sample-${SAMPLE}.csv
 
@@ -100,12 +102,13 @@ clean:
 	rm -rf build
 	rm -rf bin
 # Clean output files
-clean_output:
+clean-output:
 	rm -rf output/*.sand
-	rm -rf output/ncu_reports/*
+	rm -rf output/ncu-reports/*
 	rm -rf output/images/**/*.png
 	rm -rf output/images/**/*.ppm 
 	rm -rf output/videos/*.mp4
 	rm -rf output/logs/*.csv
+	rm -rf statistics/*
 # Clean all
-clean_all: clean clean_output
+clean-all: clean clean-output

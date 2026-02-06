@@ -169,7 +169,7 @@ void inline Logic(const hn::ScalableTag<uint8_t> d,
         auto sand_not_already_swapped = hn::Not(topcanswaphorizontally); // if it has moved horizontally, it cannot fall vertically
 
         // RandomMask for falling
-        auto randommask_fall = RandomMask(d, absolute_x, y, lanes, WATER_FALL_DOWN_CHANCE, generation, 1);
+        auto randommask_fall = RandomMask(d, absolute_x, y, lanes, SAND_FALL_DOWN_CHANCE, generation, 1);
 
         // Topleft sand fall, if bottomleft_lighter and randommask_fall, it can fall vertically.
         auto topleftsand_can_fall_vertical = hn::And(topleft_is_sand, hn::And(bottomleft_lighter, randommask_fall));
