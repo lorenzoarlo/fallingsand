@@ -2,7 +2,7 @@
 
 __device__ inline void ifSwap(bool condition, unsigned char *a, unsigned char *b)
 {
-    unsigned char mask = -condition; // 0xFF se true, 0x00 se false
+    unsigned char mask = -condition; // 0xFF if true, 0x00 if false
     unsigned char temp = (*a ^ *b) & mask;
     *a = *a ^ temp;
     *b = *b ^ temp;
@@ -108,7 +108,6 @@ __device__ inline unsigned char calculate(
            (bottomright & mask_x & mask_y);
 }
 
-// make default_test_cuda FRAMES=1500 SCALE=1 SAMPLE=2 LOGIC=src/cuda/prova-no-condition
 __global__ void kernel(unsigned char * __restrict__ grid_in, unsigned char * __restrict__ grid_out, int width, int height, int generation)
 {
 
@@ -131,32 +130,31 @@ __global__ void kernel(unsigned char * __restrict__ grid_in, unsigned char * __r
         s_tile[ty + 1][tx + 1] = P_WALL;
     }
 
-    // Carica i bordi in modo coalescente
-    // BORDO SINISTRO - tutti i thread caricano in parallelo
+    // LEFT BORDER
     if (tx == 0) {
         int x_left = blockIdx.x * blockDim.x - 1;
         s_tile[ty + 1][0] = (x_left >= 0 && y < height) ? grid_in[y * width + x_left] : P_WALL;
     }
 
-    // BORDO DESTRO
+    // RIGHT BORDER
     if (tx == blockDim.x - 1) {
         int x_right = blockIdx.x * blockDim.x + blockDim.x;
         s_tile[ty + 1][tx + 2] = (x_right < width && y < height) ? grid_in[y * width + x_right] : P_WALL;
     }
 
-    // BORDO SUPERIORE
+    // UPPER BORDER
     if (ty == 0) {
         int y_top = blockIdx.y * blockDim.y - 1;
         s_tile[0][tx + 1] = (x < width && y_top >= 0) ? grid_in[y_top * width + x] : P_WALL;
     }
 
-    // BORDO INFERIORE
+    // BOTTOM BORDER
     if (ty == blockDim.y - 1) {
         int y_bottom = blockIdx.y * blockDim.y + blockDim.y;
         s_tile[ty + 2][tx + 1] = (x < width && y_bottom < height) ? grid_in[y_bottom * width + x] : P_WALL;
     }
 
-    // ANGOLI - solo 4 thread li caricano
+    // CORNERS
     if (tx == 0 && ty == 0) {
         int x_left = blockIdx.x * blockDim.x - 1;
         int y_top = blockIdx.y * blockDim.y - 1;
@@ -183,21 +181,17 @@ __global__ void kernel(unsigned char * __restrict__ grid_in, unsigned char * __r
 
     __syncthreads();
 
-    // Shifting coordinates according to the phase
     int shifted_x = x - offset_x;
     int shifted_y = y - offset_y;
 
-    // Check bounds
     if (shifted_x < 0 || shifted_y < 0 || x >= width || y >= height)
         return;
 
-    // local positions within the 2x2 block
     int local_x = shifted_x % 2; // 0 = left, 1 = right
     int local_y = shifted_y % 2; // 0 = top, 1 = bottom
     int anchor_x = ((x - offset_x) / 2) * 2 + offset_x;
     int anchor_y = ((y - offset_y) / 2) * 2 + offset_y;
 
-    // Check bounds for the 2x2 block
     if (anchor_x + 1 >= width || anchor_y + 1 >= height) 
         return;
 
@@ -212,21 +206,12 @@ __global__ void kernel(unsigned char * __restrict__ grid_in, unsigned char * __r
     unsigned char bottomleft  = s_tile[base_ly + 1][base_lx];
     unsigned char bottomright = s_tile[base_ly + 1][base_lx + 1];
 
-    /*// Calculates cell values
-    unsigned char topleft = __ldg(&grid_in[anchor_y * width + anchor_x]);
-    unsigned char topright = __ldg(&grid_in[anchor_y * width + anchor_x + 1]);
-    unsigned char bottomleft = __ldg(&grid_in[(anchor_y + 1) * width + anchor_x]);
-    unsigned char bottomright = __ldg(&grid_in[(anchor_y + 1) * width + anchor_x + 1]);*/
-
-    //bool under_floor_solid = (anchor_y + 2 >= height || (grid_in[(anchor_y + 2) * width + anchor_x] >= P_WATER && grid_in[(anchor_y + 2) * width + anchor_x + 1] >= P_WATER));
-
     bool under_floor_solid;
     if (base_ly + 2 < TILE_DIM_Y) {
         under_floor_solid = (anchor_y + 2 >= height || 
                             (s_tile[base_ly + 2][base_lx] >= P_WATER && 
                              s_tile[base_ly + 2][base_lx + 1] >= P_WATER));
     } else {
-        // Fallback su global se fuori dal tile caricato
         under_floor_solid = (anchor_y + 2 >= height || 
                             (get_cell(grid_in, width, height, anchor_x, anchor_y + 2) >= P_WATER && 
                              get_cell(grid_in, width, height, anchor_x + 1, anchor_y + 2) >= P_WATER));
