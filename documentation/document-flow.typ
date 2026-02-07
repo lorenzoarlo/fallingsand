@@ -4,9 +4,5 @@
 
 #pagebreak()
 
-#include "z - Appendice.typ"
-
-#pagebreak()
-
 
 #bibliography("./bib.bib")
