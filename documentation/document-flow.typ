@@ -2,6 +2,8 @@
 
 #include "1 - Ottimizzazioni SIMD.typ"
 
+#include "2 - cuda.typ"
+
 #pagebreak()
 
 #include "z - Appendice.typ"
