@@ -42,6 +42,11 @@ static inline unsigned char get_cell(Universe *u, int x, int y)
 
 /**
  *  Logic to process a 2x2 block using scalar code
+ *  @param x The x coordinate of the top-left cell of the block
+ *  @param y The y coordinate of the top-left cell of the block
+ *  @param u The universe containing the cells
+ *  @param cells The array of cells to process
+ *  
  */
 static inline void blocklogic(int x, int y, Universe *u, unsigned char *cells, int generation)
 {
