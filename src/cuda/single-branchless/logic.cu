@@ -17,7 +17,7 @@ void next(Universe* u_in, Universe* u_out, int generation){
         CHECK(cudaMemcpy(d_grid_out, u_in->cells, grid_size, cudaMemcpyHostToDevice));
         initialized = true;
     }
-    dim3 block(BLOCK_SIZE, BLOCK_SIZE);
+    dim3 block(BLOCK_SIZE_X, BLOCK_SIZE_Y);
     dim3 grid((u_in->width + block.x - 1) / block.x, 
             (u_in->height + block.y - 1) / block.y);
 

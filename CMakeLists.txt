@@ -40,7 +40,7 @@ if(ENABLE_CUDA)
         ${CUDA_SOURCES}
     )
     set_target_properties(fallingsand PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
-    target_compile_features(fallingsand PRIVATE cuda_std_11)
+    target_compile_features(fallingsand PRIVATE cuda_std_20)
 else()
     if(NOT DEFINED SIMULATION_LOGIC)
         set(SIMULATION_LOGIC "src/logic.c")
