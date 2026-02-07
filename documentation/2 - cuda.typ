@@ -136,6 +136,3 @@ Dopo una prima analisi delle prestazioni si è notato che le prestazioni delle v
     caption: [Grafico dei risultati per le ottimizzazioni CUDA del sample 3],
   )
 }
-
-=== Profiling
-
