@@ -89,6 +89,22 @@ Per essere consistenti con il resto del programma e mantenendo il fatto che ad o
 
 #{
   show table: zero.format-table(auto, auto, auto)
+  
+  figure(
+    table(
+      columns: 2,
+      [Sistema operativo], [Kali Linux],
+      [Processore host], [12th Gen Intel(R) Core(TM) i7-1255U],
+      [Host Memory], [16 GB],
+      [CUDA version], [12.4],
+      [NVIDIA Device], [NVIDIA GeForce MX550],
+      [Device Memory], [2 GB],
+      [Device Architecture], [Turing],
+      [Device Compute Capability], [7.5],
+    ),
+    caption: [Specifiche del laptop su cui sono stati effettuati i seguenti test],
+  )
+
   figure(
     table(
       columns: 3,
