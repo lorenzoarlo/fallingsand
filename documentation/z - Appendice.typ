@@ -1,28 +1,27 @@
+// codly
+#import "@preview/codly:1.3.0": *
+#import "@preview/codly-languages:0.1.1": *
+#show: codly-init.with()
+
+#codly(
+  languages: codly-languages,
+  header-repeat: true,
+  zebra-fill: luma(248),
+  lang-stroke: lang => rgb(0, 0, 0, 0),
+  smart-indent: true,
+  number-format: none,
+)
+
 
 = Appendice <appendice>
 
-== Codice implementazione sequenziale base
+== Codice implementazione sequenziale di riferimento <appendice-implementazione-sequenziale>
 
-```cpp
-void next(Universe *u, Universe *out, int generation)
-{
+Il codice dell'implementazione sequenziale di riferimento è consultabile nel file `src/logic.c` (e quindi `src/utility/utility-functions.h` in cui sono state fattorizzate alcune funzioni di utilità) a @FallingSandProject.
+Di seguito è comunque riportato un estratto del codice ritenuto particolarmente interessante
 
-    // Copying by default the entire universe
-    memcpy(out->cells, u->cells, u->width * u->height);
+#codly(number-format: numbering.with("1"))
+#raw(block: true, read("./assets/code/implementazione-sequenziale.c"), lang: "cpp")
+#codly(number-format: none)
 
-    // Choose which cell of the 2x2 block to offset based on generation
-    // Pattern Margolus (0,0) -> (1,1) -> (0,1) -> (1,0)
-    int phase = generation % 4;
-    int offset_x = (phase == 1 || phase == 3) ? 1 : 0;
-    int offset_y = (phase == 1 || phase == 2) ? 1 : 0;
 
-    // Iterate over the universe in 2x2 blocks
-    for (int y = offset_y; y < u->height - 1; y += 2)
-    {
-        for (int x = offset_x; x < u->width - 1; x += 2)
-        {
-            blocklogic(x, y, u, out->cells, generation);
-        }
-    }
-}
-```
