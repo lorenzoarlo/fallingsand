@@ -17,7 +17,7 @@ __global__ void kernel(unsigned char* grid_in, unsigned char* grid_out, int widt
     int i_topright = (y * width) + (x + 1);
     int i_bottomleft = ((y + 1) * width) + x;
     int i_bottomright = ((y + 1) * width) + (x + 1);
-    // Pointers to the 4 cells
+    
     unsigned char topleft = grid_out[i_topleft];
     unsigned char topright = grid_out[i_topright];
     unsigned char bottomleft = grid_out[i_bottomleft];

@@ -88,7 +88,7 @@ __global__ void kernel(unsigned char* grid_in, unsigned char* grid_out, int widt
         }
         else if (*topleft < P_SAND && *bottomleft < P_SAND)
         {
-            swap(topright, bottomleft); // Cade in diagonale
+            swap(topright, bottomleft);
         }
     }
     // Manage WATER falling and horizontal movement

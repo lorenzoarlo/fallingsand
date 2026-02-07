@@ -2,7 +2,7 @@
 
 __device__ inline void ifSwap(bool condition, unsigned char *a, unsigned char *b)
 {
-    unsigned char mask = -condition; // 0xFF se true, 0x00 se false
+    unsigned char mask = -condition; // 0xFF if true, 0x00 if false
     unsigned char temp = (*a ^ *b) & mask;
     *a = *a ^ temp;
     *b = *b ^ temp;
@@ -125,7 +125,7 @@ __global__ void kernel_opt(unsigned char* __restrict__ grid_in, unsigned char* _
     int i_topright = (y * width) + (x + 1);
     int i_bottomleft = ((y + 1) * width) + x;
     int i_bottomright = ((y + 1) * width) + (x + 1);
-    // Pointers to the 4 cells
+
     unsigned char topleft = __ldg(&grid_in[i_topleft]);
     unsigned char topright = __ldg(&grid_in[i_topright]);
     unsigned char bottomleft = __ldg(&grid_in[i_bottomleft]);
