@@ -44,12 +44,12 @@ In particolare sono stati utilizzati i seguenti stati di input:
   eseguito per $1500$ \"generazioni\";
 ]
 #list.item()[
-  il _sample-3_ è una matrice $1920 times 1080$ contenente masse di _sabbia_ e _acqua_ più numerose
+  il _sample-3_ e _sample-4_ sono rispettivamente matrici $1920 times 1080$ e $3840 times 2160$  contenente masse di _sabbia_ e _acqua_ più numerose
   #figure(
     rect(
       image("assets/sample-3.png", height: 200pt),
     ),
-    caption: [_sample-3_],
+    caption: [_sample-3_ e _sample-4_],
   )
   eseguito per $3000$ iterazioni.
 ]

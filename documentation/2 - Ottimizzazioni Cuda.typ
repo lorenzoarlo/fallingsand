@@ -83,27 +83,28 @@ Questo approccio porta ovviamente ad un aumento di thread necessari, esattamente
 
 Dopo la fase di implementazione si è proceduto con la valutazione delle prestazioni ed il profiling tramite NVIDIA Nsight Compute.
 
+Tutti i test sono stati effettuati su un elaboratore con le seguenti specifiche:
+#figure(
+  table(
+    columns: 2,
+    [Sistema operativo], [Kali Linux],
+    [Processore host], [12th Gen Intel(R) Core(TM) i7-1255U],
+    [Host Memory], [16 GB],
+    [CUDA version], [12.4],
+    [NVIDIA Device], [NVIDIA GeForce MX550],
+    [Device Memory], [2 GB],
+    [Device Architecture], [Turing],
+    [Device Compute Capability], [7.5],
+  ),
+  caption: [Specifiche elaboratore su cui sono stati effettuati test],
+)
+
 A seguito di una prima analisi delle prestazioni si è notato che le prestazioni delle varie versioni non variavano di tanto fra l'una e l'altra, portando alla scelta di rendere le versioni branchless (considerate le più promettenti) _stateful_. In questo modo, la matrice è caricata dall'host solo la prima volta e utilizzare quella aggiornata direttamente dallo stato precedente.
 
 Per essere consistenti con il resto del programma e mantenendo il fatto che ad ogni iterazione il kernel deve analizzare solo il singolo frame, ad ogni iterazione è necessario copiare la matrice risultante sull'host.
 
 #{
   show table: zero.format-table(auto, auto, auto)
-  
-  figure(
-    table(
-      columns: 2,
-      [Sistema operativo], [Kali Linux],
-      [Processore host], [12th Gen Intel(R) Core(TM) i7-1255U],
-      [Host Memory], [16 GB],
-      [CUDA version], [12.4],
-      [NVIDIA Device], [NVIDIA GeForce MX550],
-      [Device Memory], [2 GB],
-      [Device Architecture], [Turing],
-      [Device Compute Capability], [7.5],
-    ),
-    caption: [Specifiche del laptop su cui sono stati effettuati i seguenti test],
-  )
 
   figure(
     table(
@@ -154,6 +155,23 @@ Per essere consistenti con il resto del programma e mantenendo il fatto che ad o
   figure(
     image("assets/graph-cuda-sample-3.png", width: 100%),
     caption: [Grafico dei risultati per le ottimizzazioni CUDA del sample 3],
+  )
+
+  figure(
+    table(
+      columns: 3,
+      table.header([*Versione*], [*Numero cicli*], [*Speedup*]),
+      [Base (sequenziale)], [139511260260], [$times 1$],
+      [Naive], [42068946161], [$times 3.32$],
+      [Ottimizzata], [41210448728], [$times 3.39$],
+      [Branchless a blocchi], [16857574178], [$times 8.28$],
+      [Branchless single thread], [27644583721], [$times 5.05$],
+    ),
+    caption: [Risultati ottimizzazione CUDA del sample 4 ($3840 times 2160$) per $3000$ frame],
+  )
+  figure(
+    image("assets/graph-cuda-sample-4.png", width: 100%),
+    caption: [Grafico dei risultati per le ottimizzazioni CUDA del sample 4],
   )
 }
 

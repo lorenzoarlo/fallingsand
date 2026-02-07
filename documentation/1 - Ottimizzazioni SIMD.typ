@@ -117,10 +117,27 @@ Oltre alle versioni ottimizzate manualmente, sono stati inseriti anche i risulta
     image("assets/graph-simd-sample-3.png", width: 100%),
     caption: [Grafico dei risultati per le ottimizzazioni SIMD del sample 3],
   )
+
+  figure(
+    table(
+      columns: 3,
+      table.header([*Versione*], [*Numero cicli*], [*Speedup *]),
+      [Base], [507135947], [$times 1$],
+      [Base con ottimizzazione `-O3`], [510808022], [$times 0.99$],
+      [Ottimizzazione SIMD senza prefetch], [206792052], [$times 2.45$],
+      [Ottimizzazione SIMD con prefetch], [209215278], [$times 2.42$],
+    ),
+    caption: [Risultati ottimizzazione SIMD del sample 4 ($3840 times 2160$) per $3000$ frame],
+  )
+
+  figure(
+    image("assets/graph-simd-sample-4.png", width: 100%),
+    caption: [Grafico dei risultati per le ottimizzazioni SIMD del sample 4],
+  )
 }
 
 
-Come è possibile notare dai risultati, le ottimizzazioni SIMD implementate permettono di ottenere un miglioramento significativo delle prestazioni rispetto alla versione base, con uno speedup di circa $7$ volte (leggermente migliore per il _sample 3_, dovuto probabilmente al maggior numero di frame coinvolti), anche superiore rispetto all'ottimizzazione fatta automaticamente dal compilatore.
+Come è possibile notare dai risultati, le ottimizzazioni SIMD implementate permettono di ottenere un miglioramento significativo delle prestazioni rispetto alla versione base, con uno speedup di circa $7$ volte (leggermente migliore per il _sample 3_, dovuto probabilmente al maggior numero di frame coinvolti, e di molto peggiore per il _sample 4_), anche superiore rispetto all'ottimizzazione fatta automaticamente dal compilatore.
 I risultati sono coerenti per tutti i _sample_ ed è possibile notare che l'ottimizzazione con prefetch peggiora generalmente le prestazioni (probabilmente dovuto all'overhead introdotto dalle istruzioni che non compensa il vantaggio di avere i dati già caricati automaticamente).
 
 Il miglioramento è dovuto alla combinazione del vantaggio ottenuto dalla versione _branchless_ e dalla maggiore quantità di dati processati contemporaneamente offerta da SIMD.
