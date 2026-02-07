@@ -5,6 +5,7 @@ SAMPLE ?= 1
 LOGIC ?= src/logic.c
 CUDA_ARCHITECTURES ?= 75 # Needed by CUDA to compile for specific GPU architectures
 FRAMERATE=120
+
 # Default target
 default:
 	cmake -B build -DSIMULATION_LOGIC="${LOGIC}"
@@ -40,11 +41,13 @@ capture-original: default
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand 10 -oi output/images/sample-${SAMPLE}/ -s 4 -l /dev/null
 
 # Run simulation and compare output with reference solution (without image output)
+
 test: default
 	mkdir -p output
 	mkdir -p statistics
 	mkdir -p output/logs/
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -t assets/references/output-sample-${SAMPLE}.sand -l statistics/sequential-sample-${SAMPLE}.csv
+
 
 test-o3: default-o3
 	mkdir -p output
@@ -52,15 +55,29 @@ test-o3: default-o3
 	mkdir -p output/logs/
 	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -t assets/references/output-sample-${SAMPLE}.sand -l statistics/sequential-o3-sample-${SAMPLE}.csv
 
-
 test-simd-manual-interleave: LOGIC = src/simd/simd-manual-interleave.cpp
-test-simd-manual-interleave: test
+test-simd-manual-interleave: default
+	mkdir -p output
+	mkdir -p statistics
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -t assets/references/output-sample-${SAMPLE}.sand -l statistics/simd-manual-interleave-sample-${SAMPLE}.csv
 
 test-simd-manual-interleave-prefetch: LOGIC = src/simd/simd-manual-interleave-prefetch.cpp
-test-simd-manual-interleave-prefetch: test
+test-simd-manual-interleave-prefetch: default
+	mkdir -p output
+	mkdir -p statistics
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -t assets/references/output-sample-${SAMPLE}.sand -l statistics/simd-manual-interleave-prefetch-sample-${SAMPLE}.csv
+
+
 
 test-simd-manual-interleave-prefetch-o3: LOGIC = src/simd/simd-manual-interleave-prefetch.cpp
-test-simd-manual-interleave-prefetch-o3: test-o3
+test-simd-manual-interleave-prefetch-o3: default
+	mkdir -p output
+	mkdir -p statistics
+	mkdir -p output/logs/
+	./build/bin/fallingsand assets/sample-${SAMPLE}.sand output/output-sample-${SAMPLE}.sand ${FRAMES} -t assets/references/output-sample-${SAMPLE}.sand -l statistics/simd-manual-interleave-prefetch-o3-sample-${SAMPLE}.csv
+
 
 # Profiling for SIMD version
 performance-simd: LOGIC = src/simd/simd-manual-interleave.cpp
