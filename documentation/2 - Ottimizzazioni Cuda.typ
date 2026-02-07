@@ -140,3 +140,34 @@ Per essere consistenti con il resto del programma e mantenendo il fatto che ad o
     caption: [Grafico dei risultati per le ottimizzazioni CUDA del sample 3],
   )
 }
+
+=== Profiling
+Il profiling è stato fatto tramite NVIDIA Nsight Compute.
+
+Prima di tutto, è importante notare che il kernel sviluppato svolge tante operazioni bitwise, shift e calcolo di indirizzi. Le uniche operazioni floating point effettuate riguardano l'operazione floating point per la generazione di numeri random, che tuttavia non influisce sull'utilizzo della bandwidth e non è modificabile per tener fede all'algoritmo originale. Per questo motivo, si è deciso di non effettuare l'analisi del _roofline model_.
+
+Altra osservazione importante riguarda il fatto l'algoritmo è fortemente memory bound e che le ultime ottimizzazioni cercano di ovviare a tale problema utilizzando la shared memory.
+
+Attraverso la funzione `ifSwap` (descritta in precedenza) si svolge lo scambio dei valori solo se la condizione è vera, permettendo di diminuire la _warp divergence_ e a rendere coerente tra i thread la compute capability, riuscendo a mantenere l'_occupancy_ in un range ottimale.
+
+=== Versione naive e ottimizzata
+
+Tale valore è soddisfacente già nella versione naive (intorno al $75\%$): nonostante ciò all'aumentare dei dati il tempo di esecuzione risulta essere peggiore rispetto a quello delle altre versioni ottimizzate in parallelo, seppur più veloce rispetto alla versione sequenziale. Contribuisce a ciò anche l'hit rate delle memorie cache, pari a $54 \%$ per la cache L1 e $61\%$ per la cache L2.
+
+La versione leggermente  ottimizzata mostra prestazioni lievemente migliori ma comunque molto simili alla versione naive.
+
+
+=== Versioni branchless
+
+Dati più interessanti sono quelli delle implementazioni branchless.
+
+
+L'implementazione del kernel _block branchless_  risulta essere la più veloce, ottenendo uno speedup di circa 6 volte e mezzo.
+Presenta un'_occupancy_ leggermente più alta rispetto alla versione naive (pari circa all'80%), valori di _cache hit_ maggiori pari al $58\%$ per L1 e picchi del $74\%$ (nei diversi frame).
+
+Considerando una media di $25$ thread attivi sui $32$ massimi per warp, si è deciso tenendo in considerazione i risultati del profiling, di diminuire la dimensione dei blocchi da $32 times 32$ a $16 times 16$ per mantenere un numero di thread attivi più alto possibile. Fisiologicamente diminuisce anche l'_occupancy_ arrivando ad un valore pari a $77/78\%$ ma portando anche ad un miglioramento dei tempi di esecuzione. Variando la dimensione del blocco, si ottiene anche un miglioramento del memory throughput, che si stabilizza intorno ai $50 "Gbyte/sec"$ rispetto ai $30/40 "Gbyte/sec"$ precedenti..
+
+
+L'implementazione del kernel _single branchless_ (in cui ogni thread aggiorna una singola cella) prevedeva inizialmente l'accesso alla memoria globale, portnado ad un tempo di esecuzione spaventosamente alto (caratterizzato da un'occupancy elevata pari ad oltre il $90\%$ e ad un aumento della cache hit). Utilizzando la shared memory ha portato ad un miglioramento significativo, anche se comunque inferiore rispetto alla versione _block branchless_.
+Anche in questo caso, si è deciso di diminuire la dimensione dei blocchi da $32 times 32$ a $16 times 16$ ottenendo miglioramenti simili.
+
