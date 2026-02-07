@@ -12,8 +12,6 @@
   number-format: none,
 )
 
-
-
 == Struttura del codice
 
 Il programma realizzato è scritto in C e le operazioni che esegue ad ogni esecuzione sono:
@@ -62,7 +60,7 @@ Tale pattern prevede la divisione della matrice in blocchi $2 times 2$ per cui s
 
 #figure(
   image("assets/pattern-margolus.png", width: 70%),
-  caption: [Pattern di Margolus]
+  caption: [Pattern di Margolus],
 )
 
 Le regole dedotte dall'implementazione @GPUFallingSandCA e utilizzate permettono di modificare ogni blocco in maniera \"sequenziale\" senza la necessità di tenere conto delle modifiche effettuate al blocco stesso, permettendo l'applicazione di ogni regola basandosi solamente sullo stato precedente.
@@ -71,31 +69,30 @@ In particolare, le regole riguardano lo scambio di posizione delle particelle (i
   se una particella di  _sabbia_ si trova nella parte alta del blocco ed è \"in caduta\" (quindi si trovano sopra a particelle meno dense) è possibile (con una certa probabilità definita) che si muova orizzontalmente (scambiandosi di posizione con la particella ad essa adiacente nel blocco);
 ]
 #enum.item()[
-  ipotizzando che la particella di _sabbia_ non si sia mossa orizzontalmente, questa verifica che la particella sottostante sia meno densa ed in questo caso è possibile (con una certa probabilità) che si muova verticalmente (scambiandosi di posizione con la particella sottostante);
-  Nel caso la particella sottostante fosse pià densa, la particella di _sabbia_ potrebbe comunque spostarsi diagonalmente (se al suo fianco e nella sua destinazione fossero presenti particelle meno dense);
+  ipotizzando che la particella di _sabbia_ non si sia mossa orizzontalmente, questa verifica che la particella sottostante sia meno densa; in questo caso è possibile (con una certa probabilità) che si muova verticalmente (scambiandosi di posizione con la particella sottostante);
+  Nel caso la particella sottostante fosse più densa, la particella di _sabbia_ potrebbe comunque spostarsi diagonalmente (se al suo fianco e nella sua destinazione fossero presenti particelle meno dense);
 ]
 #enum.item()[
-  considerando ora la presenza di particelle _acqua_, queste si comportano in maniera simile alla _sabbia_, ma considerando il fatto che sia possibile (con una certa probabilità) il movimento diagonale (sempre rispettando le regole di densità) ed il \"galleggiamento\" nonostante la possibilità di movimento verticale e/o diagonale
+  considerando ora la presenza di particelle d'_acqua_, queste si comportano in maniera simile alla _sabbia_, ma considerando il fatto che sia possibile (con una certa probabilità) il movimento diagonale (sempre rispettando le regole di densità) ed il \"galleggiamento\" nonostante la possibilità di movimento verticale e/o diagonale
 ]
 #enum.item()[
   considerando invece il caso in cui delle particelle d'acqua si trovino sopra a particelle più dense (e non siano già cadute), queste potrebbero comunque spostarsi orizzontalmente con una certa probabilità;
 ]
 #enum.item()[
-  sempre considerando il caso di particelle d'acqua, è necessario considerare l'eventuale presenza di particelle più dense al di sotto del blocco ed eventualmente (con una certa probabilità) spostarsi orizzontalmente (sempre rispettando le regole di densità);
+  sempre considerando il caso di particelle d'acqua, è necessario verificare l'eventuale presenza di particelle più dense al di sotto del blocco ed eventualmente (con una certa probabilità) spostarsi orizzontalmente (sempre rispettando le regole di densità);
 ]
 
-É da notare che proprio per la struttura dell'algoritmo, qualsiasi *cambiamento ad un blocco composto da quattro celle identiche* non varierebbe la combinazione, rendendo inutile l'applicazione delle regole.
+È da notare che proprio per la struttura dell'algoritmo, qualsiasi *cambiamento ad un blocco composto da quattro celle identiche* non varierebbe la combinazione, rendendo inutile l'applicazione delle regole.
 
-Per garantire il determinismo, quando è necessario verificare la probabilità di un evento, è utilizzato un generatore di numeri pseudo-casuali basati sulla posizione della particella e dalla generazione (il numero del frame).
+Per garantire il determinismo quando è necessario verificare la probabilità di un evento, è utilizzato un generatore di numeri pseudo-casuali basati sulla posizione della particella e sulla generazione (il numero del frame).
 
-Tale logica per essere applicata correttamente nel programma, deve essere implementata in una funzione che rispetta l'intestazione
+Tale logica, per essere applicata correttamente nel programma, deve essere implementata in una funzione che rispetta la firma
 ```cpp
 void next(Universe *in, Universe *out, int generation);
 ```
 Non sono presenti vincoli sull'integrità dei dati in input, quindi è teoricamente possibile restituire come output in `out` esattamente il puntatore ad `in` con il contenuto modificato.
 
 Sarà sul tempo di esecuzione di tale funzione che saranno effettuate le misurazioni delle performance delle diverse ottimizzazioni.
-
 
 == Analisi del problema
 Come già definito, il cuore delle diverse ottimizzazioni è rappresentato dalla funzione `next`, che deve essere eseguita per il numero di iterazioni richiesto.

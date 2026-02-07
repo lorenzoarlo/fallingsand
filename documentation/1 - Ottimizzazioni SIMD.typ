@@ -20,9 +20,9 @@ Di seguito sono descritte alcune ottimizzazioni che utilizzano istruzioni SIMD (
 
 Per farlo è stata utilizzata la libreria Google Highway @highway_library, che fornisce un'interfaccia portabile per l'utilizzo di istruzioni SIMD su diverse architetture.
 
-L'idea alla base è che è possibile processare più celle contemporaneamente caricando in memoria vettori che contengono i valori di più celle (e quindi di diversi blocchi).
+L'idea alla base è che sia possibile elaborare più celle contemporaneamente caricando nei registri vettori che contengono i valori di più celle (e quindi di diversi blocchi).
 
-Oltre ad adattare l'algoritmo per processare più blocchi contemporaneamente, è stato fatto un passo in più per rendere _branchless_ l'algoritmo, ovvero evitare di utilizzare istruzioni di salto per gestire gli scambi. In alternativa sono state utilizzate le seguenti istruzioni che permettono di effettuare lo scambio senza effettuare salti
+Oltre ad adattare l'algoritmo per processare più blocchi contemporaneamente, è stato fatto un passo in più per rendere _branchless_ l'algoritmo, ovvero evitare di utilizzare istruzioni di salto per gestire gli scambi. In alternativa sono state impiegate le seguenti istruzioni che permettono di eseguire lo scambio
 ```cpp
 template <class Descriptor, class Vector, class Mask>
 HWY_INLINE void IfSwap(Descriptor d, Mask condition_mask, Vector &a, Vector &b)
@@ -33,11 +33,11 @@ HWY_INLINE void IfSwap(Descriptor d, Mask condition_mask, Vector &a, Vector &b)
     b = new_b;
 }
 ```
-Per calcolare ogni condizione, si è utilizzata una combinazione di istruzioni logiche per calcolare le maschere di condizione, poi fornite alla funzione `IfSwap` per effettuare lo scambio dei corretti \"componenti\" del vettore caricato.
+Per determinare ogni condizione, si è utilizzata una combinazione di istruzioni logiche per calcolare le maschere di condizione, poi fornite alla funzione `IfSwap` per scambiare i corretti \"componenti\" del vettore caricato.
 
 Per effettuare le trasformazioni, è stato necessario adattare ogni istruzione `if-else-if` ponendo attenzione a rispettare l'effettivo comportamento dell'algoritmo originale (ad esempio, per calcolare lo scambio che avviene nel ramo `else-if` è necessario negare la condizione del ramo `if` precedente e unirlo con la condizione del ramo `else-if`).
 
-Proprio per il fatto che sono presenti dipendenze tra i dati all'interno di ogni \"blocco\", si ha che all'interno di ogni vettore sarebbe necessario effettuare confronti tra componenti adiacenti. Per farlo è quindi necessario effettuare delle permutazioni sui vettori caricati,
+A causa delle dipendenze tra i dati all'interno di ogni \"blocco\", si ha che all'interno di ogni vettore sarebbe necessario effettuare confronti tra componenti adiacenti. Per farlo è quindi necessario effettuare delle permutazioni sui vettori caricati.
 
 Sono state implementate diverse versioni dell'algoritmo, con leggere differenze.
 
@@ -48,12 +48,12 @@ hn::LoadInterleaved2(d, toprow_address + x, toplefts, toprights)
 ```
 che permette di caricare in due vettori distinti tutti i dati in posizione pari (nel primo) e in posizione dispari (nel secondo)   a partire da un indirizzo.
 
-Tuttavia, nel nostro caso non risulta essere una buona scelta, in quanto nei diversi _sample_ presenterebbe performance peggiori rispetto alla versione base di riferimento.
-Il motivo di tale inefficienza è dovuta al fatto che per la struttura dei dati, sono presenti diversi blocchi composti da celle uguali che quindi non sono processati. Tale ottimizzazione è riportata anche in questa versione \"fallimentare\" ma non è sufficiente a compensare l'overhead introdotto dallo smistamento dei dati.
+Tuttavia, nel nostro caso non si è rivelata una buona scelta, in quanto nei diversi _sample_ presenterebbe performance peggiori rispetto alla versione base di riferimento.
+Il motivo di tale inefficienza è dovuto al fatto che per la struttura dei dati, sono presenti diversi blocchi composti da celle uguali che quindi non sono processati. Tale ottimizzazione è riportata anche in questa versione \"fallimentare\" ma non è sufficiente a compensare l'overhead introdotto dallo smistamento dei dati.
 
 La soluzione#footnote[consultabile nel file `src/simd/simd-manual-interleave.cpp`] è stata quella di utilizzare per prima la funzione di caricamento `hn::LoadU` (che effettua il caricamento anche di dati non allineati, per rendere il codice compatibile con il programma preesistente#footnote[scelta progettuale per evitare di rendere dipendente da Google Highway il codice principale]), per poi verificare se tutti i blocchi caricati sono composti da celle uguali tra loro#footnote[si intende che le celle di ogni blocco devono essere uguali tra loro all'interno del blocco, non è necessario che anche i blocchi siano uguali tra loro], e in caso affermativo non processarli. In caso contrario, si procede con lo smistamento dei dati attraverso le funzioni `hn::ConcatEven` e `hn::ConcatOdd`.
 
-Da notare che in entrambe le versioni si processano esattamente il numero di celle doppio rispetto a quelle inseribili in un vettore (indicato dalla variabile `lanes` che è calcolata dalla libreria in base alla dimensione dei dati e all'architettura), in quanto i confronti vengono fatti tra i componenti adiacenti che devono essere separati, spostando i dati confrontabili in due vettori distinti.
+Da notare che in entrambe le versioni ad ogni iterazione si processano esattamente il doppio di celle rispetto a quelle inseribili in un vettore (indicato dalla variabile `lanes` che è calcolata dalla libreria in base alla dimensione dei dati e all'architettura), in quanto i confronti vengono fatti tra i componenti adiacenti che devono essere separati, spostando i dati confrontabili in due vettori distinti.
 
 L'ultima ottimizzazione implementata prevede l'utilizzo di istruzioni di _prefetch_#footnote[consultabile nel file `src/simd/simd-manual-interleave-prefetch.cpp`] per caricare in anticipo i dati che saranno processati nei successivi passi dell'algoritmo.
 
@@ -120,7 +120,7 @@ Oltre alle versioni ottimizzate manualmente, sono stati inseriti anche i risulta
 }
 
 
-Come è possibile notare dai risultati, le ottimizzazioni SIMD implementate permettono di ottenere un miglioramento significativo delle prestazioni rispetto alla versione base, con un speedup di circa $7$ volte (leggermente migliore per il _sample 3_, dovuto probabilmente al maggior numero di frame coinvolti), anche superiore rispetto all'ottimizzazione fatta automaticamente dal compilatore.
-I risultati sono coerenti per tutti i _sample_ ed è possibile notare che l'ottimizzazione con prefetch peggiora generalmente le prestazioni (probabilmente dovuto all'overhead introdotto dalle istruzioni che non compensa il vantaggio di avere i dati già caricati in cache fatti dall'hardware).
+Come è possibile notare dai risultati, le ottimizzazioni SIMD implementate permettono di ottenere un miglioramento significativo delle prestazioni rispetto alla versione base, con uno speedup di circa $7$ volte (leggermente migliore per il _sample 3_, dovuto probabilmente al maggior numero di frame coinvolti), anche superiore rispetto all'ottimizzazione fatta automaticamente dal compilatore.
+I risultati sono coerenti per tutti i _sample_ ed è possibile notare che l'ottimizzazione con prefetch peggiora generalmente le prestazioni (probabilmente dovuto all'overhead introdotto dalle istruzioni che non compensa il vantaggio di avere i dati già caricati automaticamente).
 
 Il miglioramento è dovuto alla combinazione del vantaggio ottenuto dalla versione _branchless_ e dalla maggiore quantità di dati processati contemporaneamente offerta da SIMD.
