@@ -79,7 +79,7 @@ To run the simulation (with a test reference):
 ./bin/fallingsand input.sand output.sand 30 -oi output_folder -t test_reference.sand
 ```
 
-### Default logic implementation
+### Default logic implementation
 
 For example
 
@@ -92,7 +92,7 @@ or you can build it with
 make default_video
 ```
 
-### Freeze logic implementation
+### Freeze logic implementation
 
 ```bash
 cmake -DSIMULATION_LOGIC="src/utility/freeze.c" . # ...
