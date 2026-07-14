@@ -9,7 +9,7 @@
 
 # Falling sand project
 
-The falling sand project is a simulation of particles that interact with each other based on simple physical rules. The main types of particles are empty space, walls, sand, and water. Each particle type has its own behavior, such as falling under gravity or flowing.
+The falling sand project is a simulation of particles that interact with each other based on simple physical rules. The main types of particles are empty space, walls, sand, and water. Each particle type has its own behavior, such as falling under gravity or flowing. [`fallingsand.pdf`](fallingsand.pdf) describes this project more.
 
 ## Algorithm overview
 
